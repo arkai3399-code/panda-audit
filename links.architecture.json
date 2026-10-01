@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "⇄ 三个系统之间的衔接",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1140,
+      620
+    ],
+    "views": [
+      {
+        "id": "l-ok",
+        "label": "已接通",
+        "focus": [
+          "papi",
+          "glive",
+          "pimg",
+          "inames",
+          "itool",
+          "grender"
+        ],
+        "note": "排名 API → 平台（240/240 一致）；角色图一致；绘图 / 文案代码被平台原样复用。"
+      },
+      {
+        "id": "l-bad",
+        "label": "对不上",
+        "focus": [
+          "ppage",
+          "itool"
+        ],
+        "note": "本体个人评分与社内ツール评分核互相未合并。"
+      },
+      {
+        "id": "l-gap",
+        "label": "还没有",
+        "focus": [
+          "grender",
+          "gpub"
+        ],
+        "note": "平台 → 审批 → SNS 未实现；个人分无数据来源。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "ppage",
+      "type": "frontend",
+      "label": "個人ページ 日運",
+      "sublabel": "calcDailyScore · 浏览器内",
+      "pos": [
+        60,
+        140
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "pimg",
+      "type": "database",
+      "label": "60 角色图",
+      "sublabel": "public/nikchu",
+      "pos": [
+        60,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "papi",
+      "type": "cloud",
+      "label": "公开排名 API",
+      "sublabel": "ranking-daily",
+      "pos": [
+        60,
+        460
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "itool",
+      "type": "frontend",
+      "label": "宣伝カード生成",
+      "sublabel": "/internal/promo",
+      "pos": [
+        480,
+        140
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "inames",
+      "type": "database",
+      "label": "角色名 / 図鑑 /c",
+      "sublabel": "只在 internal-tools",
+      "pos": [
+        480,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "gpub",
+      "type": "external",
+      "label": "审批 → SNS 发布",
+      "sublabel": "未实现",
+      "pos": [
+        900,
+        140
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "grender",
+      "type": "backend",
+      "label": "render-cards",
+      "sublabel": "PNG",
+      "pos": [
+        900,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "glive",
+      "type": "backend",
+      "label": "live-all JSON",
+      "sublabel": "Mac mini 每日",
+      "pos": [
+        900,
+        460
+      ],
+      "size": [
+        170,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "① PANDA 本体（main · Vercel）",
+      "wraps": [
+        "ppage",
+        "pimg",
+        "papi"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "② 社内ツール（internal-tools · Cloudflare Pages）",
+      "wraps": [
+        "itool",
+        "inames"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "③ 自动化平台（对接包 · Mac mini）",
+      "wraps": [
+        "gpub",
+        "grender",
+        "glive"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "k1",
+      "from": "ppage",
+      "to": "itool",
+      "label": "评分核 互相未合并",
+      "variant": "security"
+    },
+    {
+      "id": "k2",
+      "from": "pimg",
+      "to": "inames",
+      "label": "图一致 · 名称只在②",
+      "variant": "default"
+    },
+    {
+      "id": "k3",
+      "from": "papi",
+      "to": "glive",
+      "label": "群体分 · 240/240 一致",
+      "variant": "emphasis"
+    },
+    {
+      "id": "k4",
+      "from": "itool",
+      "to": "grender",
+      "label": "绘图 / 文案代码副本",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "k5",
+      "from": "glive",
+      "to": "grender",
+      "label": "cardSpecs",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "k6",
+      "from": "grender",
+      "to": "gpub",
+      "label": "未实现",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "✓ 已接通",
+      "items": [
+        "① 排名 API → ③ live-all（09-15 实测 240/240）",
+        "① 个人评分源码 → ③ 对接包（09-18 线上 0 差异）",
+        "① 角色图 → ②③ 共用；② 绘图代码 → ③ 副本"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "! 对不上",
+      "items": [
+        "①个人 / ①排名 / ②社内卡：三套分数互不相等",
+        "② 投稿文的 /c 链接 → ① 本番不存在",
+        "② 评分核 ↔ ① 个人评分 互相未合并"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "? 还没有",
+      "items": [
+        "① 用户出生资料 → ③ 个人分（无接口、无权限）",
+        "③ → 审批 → SNS 发布",
+        "② 改版后 ③ 的代码副本不会自动跟上"
+      ]
+    }
+  ]
+}

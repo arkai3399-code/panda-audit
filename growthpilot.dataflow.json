@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "③ 自动化平台（GrowthPilot）链路",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      500
+    ],
+    "legend": {
+      "mode": "all",
+      "entries": {
+        "default": {
+          "label": "已跑通"
+        },
+        "emphasis": {
+          "label": "每日主链路"
+        },
+        "security": {
+          "label": "有问题"
+        },
+        "dashed": {
+          "label": "未实现 / 建议新增"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "v-ok",
+        "label": "已跑通",
+        "focus": [
+          "api",
+          "check",
+          "all",
+          "render"
+        ],
+        "note": "线上取分 → parity → JSON → PNG，09-15 实测可跑。"
+      },
+      {
+        "id": "v-gap",
+        "label": "未实现",
+        "focus": [
+          "approve",
+          "sns",
+          "ledger",
+          "guard"
+        ],
+        "note": "审批、定时发布、已发布台账、发布前闸门，目前都没有。"
+      },
+      {
+        "id": "v-bad",
+        "label": "有问题",
+        "focus": [
+          "cap",
+          "all"
+        ],
+        "note": "卡片口径未定；140 字文案未经审批；文案层沿用固定句。"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "取数"
+    },
+    {
+      "label": "生成"
+    },
+    {
+      "label": "渲染・文案"
+    },
+    {
+      "label": "审批"
+    },
+    {
+      "label": "发布"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "cron",
+      "type": "messagebus",
+      "label": "launchd 06:00",
+      "sublabel": "Mac mini",
+      "stage": 0,
+      "row": 0,
+      "tag": "? 安装未核实"
+    },
+    {
+      "id": "api",
+      "type": "cloud",
+      "label": "本体 排名 API",
+      "sublabel": "ranking-daily",
+      "stage": 0,
+      "row": 1,
+      "tag": "外部依赖"
+    },
+    {
+      "id": "check",
+      "type": "backend",
+      "label": "live-check",
+      "sublabel": "240 分数比对",
+      "stage": 1,
+      "row": 0,
+      "tag": "不一致即停"
+    },
+    {
+      "id": "all",
+      "type": "backend",
+      "label": "live-all JSON",
+      "sublabel": "4 类别 + 依据",
+      "stage": 1,
+      "row": 1,
+      "tag": "已跑通"
+    },
+    {
+      "id": "pkg",
+      "type": "database",
+      "label": "对接包数据",
+      "sublabel": "60角色·文案表·图",
+      "stage": 1,
+      "row": 2
+    },
+    {
+      "id": "cap",
+      "type": "security",
+      "label": "caption140",
+      "sublabel": "140字·无#",
+      "stage": 2,
+      "row": 0,
+      "tag": "! 未审批文案"
+    },
+    {
+      "id": "render",
+      "type": "backend",
+      "label": "render-cards",
+      "sublabel": "PNG 1080×1350",
+      "stage": 2,
+      "row": 1,
+      "tag": "已跑通"
+    },
+    {
+      "id": "guard",
+      "type": "external",
+      "label": "发布前闸门",
+      "sublabel": "parity+合规7条",
+      "stage": 3,
+      "row": 0,
+      "tag": "建议新增"
+    },
+    {
+      "id": "approve",
+      "type": "external",
+      "label": "人工审批",
+      "sublabel": "文案 → 图片",
+      "stage": 3,
+      "row": 1,
+      "tag": "未实现"
+    },
+    {
+      "id": "sns",
+      "type": "external",
+      "label": "IG / X 发布",
+      "sublabel": "早中晚 3 篇",
+      "stage": 4,
+      "row": 1,
+      "tag": "未实现"
+    },
+    {
+      "id": "ledger",
+      "type": "external",
+      "label": "已发布台账",
+      "sublabel": "防连续同角色",
+      "stage": 4,
+      "row": 2,
+      "tag": "建议新增"
+    }
+  ],
+  "flows": [
+    {
+      "id": "g1",
+      "from": "cron",
+      "to": "check",
+      "label": "每天触发",
+      "variant": "default"
+    },
+    {
+      "id": "g2",
+      "from": "check",
+      "to": "all",
+      "label": "ok 才继续",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "g3",
+      "from": "api",
+      "to": "all",
+      "label": "60日柱分数",
+      "variant": "emphasis"
+    },
+    {
+      "id": "g4",
+      "from": "pkg",
+      "to": "all",
+      "label": "角色 / 文案",
+      "variant": "default"
+    },
+    {
+      "id": "g5",
+      "from": "all",
+      "to": "render",
+      "label": "cardSpecs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "g6",
+      "from": "cap",
+      "to": "guard",
+      "label": "投稿文",
+      "variant": "dashed"
+    },
+    {
+      "id": "g7",
+      "from": "render",
+      "to": "approve",
+      "label": "PNG",
+      "variant": "dashed"
+    },
+    {
+      "id": "g8",
+      "from": "guard",
+      "to": "approve",
+      "label": "通过才送审",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "g9",
+      "from": "approve",
+      "to": "sns",
+      "label": "无发布接口",
+      "variant": "dashed"
+    },
+    {
+      "id": "g10",
+      "from": "sns",
+      "to": "ledger",
+      "label": "记录",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "这是什么",
+      "items": [
+        "后期制作的自动化平台侧，跑在 Mac mini",
+        "不在 PANDA 仓库里；用的是对接包 zip",
+        "只依赖本体 1 个公开接口（群体分）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "已跑通",
+      "items": [
+        "live-check：线上 240 分数 = 本地复刻",
+        "live-all：4 类别素材 + 计算依据 → 1 个 JSON",
+        "render-cards：社内ツール同款 PNG"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "未实现 / 待定",
+      "items": [
+        "审批、定时发布、已发布台账、发布前闸门",
+        "卡片口径选哪一套、140 字文案待审批",
+        "个人分：没有出生资料来源"
+      ]
+    }
+  ]
+}

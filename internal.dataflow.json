@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "② 社内ツール（宣伝カード）链路",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      500
+    ],
+    "legend": {
+      "mode": "all",
+      "entries": {
+        "default": {
+          "label": "已接通"
+        },
+        "emphasis": {
+          "label": "主链路（全程人手操作）"
+        },
+        "security": {
+          "label": "有问题"
+        },
+        "dashed": {
+          "label": "未实现"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "v-main",
+        "label": "人手主链路",
+        "focus": [
+          "gate",
+          "ui",
+          "pick",
+          "card",
+          "dl"
+        ],
+        "note": "打开页面 → 选日期 / 类别 / 语言 → 自动选 No.1 → 画卡 → 下载。"
+      },
+      {
+        "id": "v-bad",
+        "label": "有问题",
+        "focus": [
+          "gate",
+          "pick",
+          "text",
+          "caption"
+        ],
+        "note": "開放モード；评分核与本体未合并；理由只说 1 个因子；投稿文里的 /c 链接本番不存在。"
+      },
+      {
+        "id": "v-gap",
+        "label": "未实现",
+        "focus": [
+          "dl",
+          "record"
+        ],
+        "note": "没有审批状态、投稿记录、防连续同角色。"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "入口"
+    },
+    {
+      "label": "选择"
+    },
+    {
+      "label": "选角・文案"
+    },
+    {
+      "label": "绘制"
+    },
+    {
+      "label": "带出（人手）"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "入口ガード",
+      "sublabel": "登录 / 名单 / 開放",
+      "stage": 0,
+      "row": 1,
+      "tag": "! 開放モード"
+    },
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "/internal/promo",
+      "sublabel": "日期·类别·语言",
+      "stage": 1,
+      "row": 1,
+      "tag": "26 操作点"
+    },
+    {
+      "id": "zukan",
+      "type": "frontend",
+      "label": "図鑑 /c",
+      "sublabel": "60 干支页",
+      "stage": 1,
+      "row": 2,
+      "tag": "本番没有"
+    },
+    {
+      "id": "text",
+      "type": "security",
+      "label": "文案组立",
+      "sublabel": "理由1因子·一手固定",
+      "stage": 2,
+      "row": 0,
+      "tag": "! 固定句"
+    },
+    {
+      "id": "pick",
+      "type": "security",
+      "label": "No.1 选定",
+      "sublabel": "scoreDailyCore",
+      "stage": 2,
+      "row": 1,
+      "tag": "! 与本体未合并"
+    },
+    {
+      "id": "assets",
+      "type": "database",
+      "label": "60 角色名 + 图",
+      "sublabel": "名称仅此分支",
+      "stage": 2,
+      "row": 2
+    },
+    {
+      "id": "card",
+      "type": "backend",
+      "label": "卡片绘制",
+      "sublabel": "Canvas 1080px",
+      "stage": 3,
+      "row": 1
+    },
+    {
+      "id": "caption",
+      "type": "security",
+      "label": "投稿文复制",
+      "sublabel": "带 /c 链接",
+      "stage": 4,
+      "row": 0,
+      "tag": "! 链接失效"
+    },
+    {
+      "id": "dl",
+      "type": "external",
+      "label": "PNG / zip 下载",
+      "sublabel": "人手发到 SNS",
+      "stage": 4,
+      "row": 1,
+      "tag": "无自动化"
+    },
+    {
+      "id": "record",
+      "type": "external",
+      "label": "审批·投稿记录",
+      "sublabel": "フェーズ2",
+      "stage": 4,
+      "row": 2,
+      "tag": "未实现"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "gate",
+      "to": "ui",
+      "label": "放行",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f2",
+      "from": "ui",
+      "to": "pick",
+      "label": "日期×类别",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f3",
+      "from": "pick",
+      "to": "card",
+      "label": "No.1 日柱",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "f4",
+      "from": "card",
+      "to": "dl",
+      "label": "PNG",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f5",
+      "from": "ui",
+      "to": "zukan",
+      "label": "図鑑へ",
+      "variant": "default",
+      "labelDy": 24
+    },
+    {
+      "id": "f6",
+      "from": "text",
+      "to": "caption",
+      "label": "3 段文案",
+      "variant": "security"
+    },
+    {
+      "id": "f7",
+      "from": "assets",
+      "to": "card",
+      "label": "图 + 名称",
+      "variant": "default"
+    },
+    {
+      "id": "f8",
+      "from": "dl",
+      "to": "record",
+      "label": "无记录",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "这是什么",
+      "items": [
+        "公司内部用的网页，不是本体的一部分",
+        "独立部署在 Cloudflare Pages（手动上传）",
+        "全部在浏览器内完成，没有自己的接口"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "! 有问题",
+      "items": [
+        "評分核与本体互相未合并",
+        "投稿文的 /c 链接在本番不存在",
+        "理由只说 1 个因子；一手按类别固定 1 句"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "未实现",
+      "items": [
+        "审批状态 / 投稿记录（フェーズ2）",
+        "防止同一角色连续上卡",
+        "push 后自动部署"
+      ]
+    }
+  ]
+}

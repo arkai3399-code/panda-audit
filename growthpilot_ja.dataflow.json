@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "③ 自動化プラットフォーム（GrowthPilot）経路",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      500
+    ],
+    "legend": {
+      "mode": "all",
+      "entries": {
+        "default": {
+          "label": "稼働確認済み"
+        },
+        "emphasis": {
+          "label": "日次メイン経路"
+        },
+        "security": {
+          "label": "問題あり"
+        },
+        "dashed": {
+          "label": "未実装 / 新設提案"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "v-ok",
+        "label": "稼働確認済み",
+        "focus": [
+          "api",
+          "check",
+          "all",
+          "render"
+        ],
+        "note": "オンラインでスコア取得 → parity → JSON → PNG。09-15 に実測で稼働確認。"
+      },
+      {
+        "id": "v-gap",
+        "label": "未実装",
+        "focus": [
+          "approve",
+          "sns",
+          "ledger",
+          "guard"
+        ],
+        "note": "承認・定時投稿・投稿済み台帳・投稿前ゲートは、現時点でどれも無い。"
+      },
+      {
+        "id": "v-bad",
+        "label": "問題あり",
+        "focus": [
+          "cap",
+          "all"
+        ],
+        "note": "カードの基準は未決定。140 字文案は未承認。文案層は固定文のまま。"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "取得"
+    },
+    {
+      "label": "生成"
+    },
+    {
+      "label": "描画・文案"
+    },
+    {
+      "label": "承認"
+    },
+    {
+      "label": "投稿"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "cron",
+      "type": "messagebus",
+      "label": "launchd 06:00",
+      "sublabel": "Mac mini",
+      "stage": 0,
+      "row": 0,
+      "tag": "? 導入未確認"
+    },
+    {
+      "id": "api",
+      "type": "cloud",
+      "label": "本体 ランキング API",
+      "sublabel": "ranking-daily",
+      "stage": 0,
+      "row": 1,
+      "tag": "外部依存"
+    },
+    {
+      "id": "check",
+      "type": "backend",
+      "label": "live-check",
+      "sublabel": "240 スコア照合",
+      "stage": 1,
+      "row": 0,
+      "tag": "不一致で停止"
+    },
+    {
+      "id": "all",
+      "type": "backend",
+      "label": "live-all JSON",
+      "sublabel": "4 カテゴリ + 根拠",
+      "stage": 1,
+      "row": 1,
+      "tag": "稼働確認済み"
+    },
+    {
+      "id": "pkg",
+      "type": "database",
+      "label": "連携パッケージ資料",
+      "sublabel": "60キャラ·文案表·画像",
+      "stage": 1,
+      "row": 2
+    },
+    {
+      "id": "cap",
+      "type": "security",
+      "label": "caption140",
+      "sublabel": "140字·#なし",
+      "stage": 2,
+      "row": 0,
+      "tag": "! 未承認の文案"
+    },
+    {
+      "id": "render",
+      "type": "backend",
+      "label": "render-cards",
+      "sublabel": "PNG 1080×1350",
+      "stage": 2,
+      "row": 1,
+      "tag": "稼働確認済み"
+    },
+    {
+      "id": "guard",
+      "type": "external",
+      "label": "投稿前ゲート",
+      "sublabel": "parity+コンプラ7条",
+      "stage": 3,
+      "row": 0,
+      "tag": "新設提案"
+    },
+    {
+      "id": "approve",
+      "type": "external",
+      "label": "人手承認",
+      "sublabel": "文案 → 画像",
+      "stage": 3,
+      "row": 1,
+      "tag": "未実装"
+    },
+    {
+      "id": "sns",
+      "type": "external",
+      "label": "IG / X 投稿",
+      "sublabel": "朝昼晩 3 本",
+      "stage": 4,
+      "row": 1,
+      "tag": "未実装"
+    },
+    {
+      "id": "ledger",
+      "type": "external",
+      "label": "投稿済み台帳",
+      "sublabel": "同キャラ連続防止",
+      "stage": 4,
+      "row": 2,
+      "tag": "新設提案"
+    }
+  ],
+  "flows": [
+    {
+      "id": "g1",
+      "from": "cron",
+      "to": "check",
+      "label": "毎日起動",
+      "variant": "default"
+    },
+    {
+      "id": "g2",
+      "from": "check",
+      "to": "all",
+      "label": "ok なら続行",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "g3",
+      "from": "api",
+      "to": "all",
+      "label": "60日柱スコア",
+      "variant": "emphasis"
+    },
+    {
+      "id": "g4",
+      "from": "pkg",
+      "to": "all",
+      "label": "キャラ / 文案",
+      "variant": "default"
+    },
+    {
+      "id": "g5",
+      "from": "all",
+      "to": "render",
+      "label": "cardSpecs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "g6",
+      "from": "cap",
+      "to": "guard",
+      "label": "投稿文",
+      "variant": "dashed"
+    },
+    {
+      "id": "g7",
+      "from": "render",
+      "to": "approve",
+      "label": "PNG",
+      "variant": "dashed"
+    },
+    {
+      "id": "g8",
+      "from": "guard",
+      "to": "approve",
+      "label": "合格なら承認へ",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "g9",
+      "from": "approve",
+      "to": "sns",
+      "label": "投稿 API なし",
+      "variant": "dashed"
+    },
+    {
+      "id": "g10",
+      "from": "sns",
+      "to": "ledger",
+      "label": "記録",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "これは何か",
+      "items": [
+        "後から作った自動化側、Mac mini で稼働",
+        "PANDA リポジトリ外。連携パッケージ zip を使用",
+        "本体の公開 API 1 本（集団スコア）にのみ依存"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "稼働確認済み",
+      "items": [
+        "live-check：本番 240 スコア = ローカル複製",
+        "live-all：4 カテゴリの素材 + 根拠 → JSON 1 つ",
+        "render-cards：社内ツールと同じ PNG"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "未実装 / 未決定",
+      "items": [
+        "承認・定時投稿・投稿済み台帳・投稿前ゲート",
+        "カード基準の選択、140 字文案の承認待ち",
+        "個人スコア：出生資料の入手経路なし"
+      ]
+    }
+  ]
+}

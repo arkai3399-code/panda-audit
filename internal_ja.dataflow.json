@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "② 社内ツール（宣伝カード）経路",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      500
+    ],
+    "legend": {
+      "mode": "all",
+      "entries": {
+        "default": {
+          "label": "接続済み"
+        },
+        "emphasis": {
+          "label": "メイン経路（すべて手作業）"
+        },
+        "security": {
+          "label": "問題あり"
+        },
+        "dashed": {
+          "label": "未実装"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "v-main",
+        "label": "手作業のメイン経路",
+        "focus": [
+          "gate",
+          "ui",
+          "pick",
+          "card",
+          "dl"
+        ],
+        "note": "ページを開く → 日付 / カテゴリ / 言語を選ぶ → No.1 を自動選定 → カード描画 → ダウンロード。"
+      },
+      {
+        "id": "v-bad",
+        "label": "問題あり",
+        "focus": [
+          "gate",
+          "pick",
+          "text",
+          "caption"
+        ],
+        "note": "開放モード。採点コアは本体と未マージ。理由文は因子 1 つのみ。投稿文の /c リンクは本番に存在しない。"
+      },
+      {
+        "id": "v-gap",
+        "label": "未実装",
+        "focus": [
+          "dl",
+          "record"
+        ],
+        "note": "承認状態・投稿記録・同キャラ連続防止がない。"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "入口"
+    },
+    {
+      "label": "選択"
+    },
+    {
+      "label": "選定・文案"
+    },
+    {
+      "label": "描画"
+    },
+    {
+      "label": "持ち出し（手作業）"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "入口ガード",
+      "sublabel": "ログイン / 名簿 / 開放",
+      "stage": 0,
+      "row": 1,
+      "tag": "! 開放モード"
+    },
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "/internal/promo",
+      "sublabel": "日付·カテゴリ·言語",
+      "stage": 1,
+      "row": 1,
+      "tag": "操作点 26"
+    },
+    {
+      "id": "zukan",
+      "type": "frontend",
+      "label": "図鑑 /c",
+      "sublabel": "60 干支ページ",
+      "stage": 1,
+      "row": 2,
+      "tag": "本番に無い"
+    },
+    {
+      "id": "text",
+      "type": "security",
+      "label": "文案組み立て",
+      "sublabel": "理由1因子·一手固定",
+      "stage": 2,
+      "row": 0,
+      "tag": "! 固定文"
+    },
+    {
+      "id": "pick",
+      "type": "security",
+      "label": "No.1 選定",
+      "sublabel": "scoreDailyCore",
+      "stage": 2,
+      "row": 1,
+      "tag": "! 本体と未マージ"
+    },
+    {
+      "id": "assets",
+      "type": "database",
+      "label": "60 キャラ名 + 画像",
+      "sublabel": "名称はこの分岐のみ",
+      "stage": 2,
+      "row": 2
+    },
+    {
+      "id": "card",
+      "type": "backend",
+      "label": "カード描画",
+      "sublabel": "Canvas 1080px",
+      "stage": 3,
+      "row": 1
+    },
+    {
+      "id": "caption",
+      "type": "security",
+      "label": "投稿文コピー",
+      "sublabel": "/c リンク付き",
+      "stage": 4,
+      "row": 0,
+      "tag": "! リンク切れ"
+    },
+    {
+      "id": "dl",
+      "type": "external",
+      "label": "PNG / zip 保存",
+      "sublabel": "手で SNS に投稿",
+      "stage": 4,
+      "row": 1,
+      "tag": "自動化なし"
+    },
+    {
+      "id": "record",
+      "type": "external",
+      "label": "承認·投稿記録",
+      "sublabel": "フェーズ2",
+      "stage": 4,
+      "row": 2,
+      "tag": "未実装"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "gate",
+      "to": "ui",
+      "label": "通過",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f2",
+      "from": "ui",
+      "to": "pick",
+      "label": "日付×カテゴリ",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f3",
+      "from": "pick",
+      "to": "card",
+      "label": "No.1 日柱",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "f4",
+      "from": "card",
+      "to": "dl",
+      "label": "PNG",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f5",
+      "from": "ui",
+      "to": "zukan",
+      "label": "図鑑へ",
+      "variant": "default",
+      "labelDy": 24
+    },
+    {
+      "id": "f6",
+      "from": "text",
+      "to": "caption",
+      "label": "3 段の文案",
+      "variant": "security"
+    },
+    {
+      "id": "f7",
+      "from": "assets",
+      "to": "card",
+      "label": "画像 + 名称",
+      "variant": "default"
+    },
+    {
+      "id": "f8",
+      "from": "dl",
+      "to": "record",
+      "label": "記録なし",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "これは何か",
+      "items": [
+        "社内向けの Web ページで、本体の一部ではない",
+        "Cloudflare Pages に独立デプロイ（手動アップロード）",
+        "すべてブラウザ内で完結、独自 API なし"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "! 問題あり",
+      "items": [
+        "採点コアは本体と相互に未マージ",
+        "投稿文の /c リンクは本番に存在しない",
+        "理由文は因子 1 つのみ。一手はカテゴリ別に固定 1 文"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "未実装",
+      "items": [
+        "承認状態 / 投稿記録（フェーズ2）",
+        "同じキャラの連続掲載防止",
+        "push 後の自動デプロイ"
+      ]
+    }
+  ]
+}

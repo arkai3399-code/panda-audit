@@ -1,0 +1,51 @@
+# 放到「独立的审计仓库」里（不是 Panda-Fortune2）：.github/workflows/rescan.yml
+# 每天 06:00 JST 只读拉取 Panda-Fortune2 的 main / internal-tools，重扫，发布到 GitHub Pages。
+# PANDA 仓库本身不需要任何改动。
+name: rescan-and-publish
+on:
+  schedule:
+    - cron: '0 21 * * *'        # 21:00 UTC = 06:00 JST
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: 只读克隆 PANDA（需要一个只有 contents:read 的 fine-grained token）
+        env: { TOKEN: ${{ secrets.PANDA_READ_TOKEN }} }
+        run: |
+          git clone --quiet "https://x-access-token:${TOKEN}@github.com/arkai3399-code/Panda-Fortune2.git" panda
+          git -C panda fetch --quiet origin main internal-tools
+          echo "main=$(git -C panda rev-parse --short origin/main)" >> "$GITHUB_OUTPUT"
+        id: panda
+      - name: 重扫（只读；产物只写本仓库的 audit-data.js）
+        run: bash tools/sync.sh "$PWD/panda" "$PWD/gp"
+      - name: 若数据无变化则提交跳过
+        id: diff
+        run: |
+          if git diff --quiet -- audit-data.js; then echo "changed=0" >> "$GITHUB_OUTPUT"; else echo "changed=1" >> "$GITHUB_OUTPUT"; fi
+      - name: 提交新数据（保留历史，方便回看某天的快照）
+        if: steps.diff.outputs.changed == '1'
+        run: |
+          git config user.name "audit-bot"; git config user.email "audit-bot@users.noreply.github.com"
+          git add audit-data.js && git commit -m "rescan: main@${{ steps.panda.outputs.main }} $(date -u +%F)" && git push
+      - name: 组装站点（排除工具与证据）
+        run: |
+          mkdir -p _site
+          rsync -a --exclude tools --exclude evidence --exclude gp --exclude panda --exclude _site --exclude .git --exclude .github ./ _site/
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: ${{ steps.deployment.outputs.page_url }} }
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

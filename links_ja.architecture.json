@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "⇄ 3 システム間の接続",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1140,
+      620
+    ],
+    "views": [
+      {
+        "id": "l-ok",
+        "label": "接続済み",
+        "focus": [
+          "papi",
+          "glive",
+          "pimg",
+          "inames",
+          "itool",
+          "grender"
+        ],
+        "note": "ランキング API → プラットフォーム（240/240 一致）。キャラ画像一致。描画 / 文案コードはそのまま再利用。"
+      },
+      {
+        "id": "l-bad",
+        "label": "不一致",
+        "focus": [
+          "ppage",
+          "itool"
+        ],
+        "note": "本体の個人採点と社内ツールの採点コアは相互に未マージ。"
+      },
+      {
+        "id": "l-gap",
+        "label": "未接続",
+        "focus": [
+          "grender",
+          "gpub"
+        ],
+        "note": "プラットフォーム → 承認 → SNS は未実装。個人スコアはデータ源なし。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "ppage",
+      "type": "frontend",
+      "label": "個人ページ 日運",
+      "sublabel": "calcDailyScore · ブラウザ内",
+      "pos": [
+        60,
+        140
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "pimg",
+      "type": "database",
+      "label": "60 キャラ画像",
+      "sublabel": "public/nikchu",
+      "pos": [
+        60,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "papi",
+      "type": "cloud",
+      "label": "公開ランキング API",
+      "sublabel": "ranking-daily",
+      "pos": [
+        60,
+        460
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "itool",
+      "type": "frontend",
+      "label": "宣伝カード生成",
+      "sublabel": "/internal/promo",
+      "pos": [
+        480,
+        140
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "inames",
+      "type": "database",
+      "label": "キャラ名 / 図鑑 /c",
+      "sublabel": "internal-tools のみ",
+      "pos": [
+        480,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "gpub",
+      "type": "external",
+      "label": "承認 → SNS 投稿",
+      "sublabel": "未実装",
+      "pos": [
+        900,
+        140
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "grender",
+      "type": "backend",
+      "label": "render-cards",
+      "sublabel": "PNG",
+      "pos": [
+        900,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "glive",
+      "type": "backend",
+      "label": "live-all JSON",
+      "sublabel": "Mac mini 日次",
+      "pos": [
+        900,
+        460
+      ],
+      "size": [
+        170,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "① PANDA 本体（main · Vercel）",
+      "wraps": [
+        "ppage",
+        "pimg",
+        "papi"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "② 社内ツール（internal-tools · Cloudflare Pages）",
+      "wraps": [
+        "itool",
+        "inames"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "③ 自動化（連携パッケージ · Mac mini）",
+      "wraps": [
+        "gpub",
+        "grender",
+        "glive"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "k1",
+      "from": "ppage",
+      "to": "itool",
+      "label": "採点コア 相互に未マージ",
+      "variant": "security"
+    },
+    {
+      "id": "k2",
+      "from": "pimg",
+      "to": "inames",
+      "label": "画像一致 · 名称は②のみ",
+      "variant": "default"
+    },
+    {
+      "id": "k3",
+      "from": "papi",
+      "to": "glive",
+      "label": "集団スコア · 240/240 一致",
+      "variant": "emphasis"
+    },
+    {
+      "id": "k4",
+      "from": "itool",
+      "to": "grender",
+      "label": "描画 / 文案コードの複製",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "k5",
+      "from": "glive",
+      "to": "grender",
+      "label": "cardSpecs",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "k6",
+      "from": "grender",
+      "to": "gpub",
+      "label": "未実装",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "✓ 接続済み",
+      "items": [
+        "① ランキング API → ③ live-all（09-15 実測 240/240）",
+        "① 個人採点ソース → ③ 連携パッケージ（09-18 本番と 0 差異）",
+        "① キャラ画像 → ②③ 共用。② 描画コード → ③ 複製"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "! 不一致",
+      "items": [
+        "①個人 / ①ランキング / ②社内カード：3 系統のスコアが不一致",
+        "② 投稿文の /c リンク → ① 本番に存在しない",
+        "② 採点コア ↔ ① 個人採点 相互に未マージ"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "? 未接続",
+      "items": [
+        "① 出生資料 → ③ 個人スコア（API も権限もなし）",
+        "③ → 承認 → SNS 投稿",
+        "② 改版後、③ のコード複製は自動では追随しない"
+      ]
+    }
+  ]
+}

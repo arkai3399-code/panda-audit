@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "① PANDA 本体 全链路总览",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1140,
+      580
+    ],
+    "repository": {
+      "url": "https://github.com/arkai3399-code/Panda-Fortune2",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "24b595fc15299f71343c8cdc1d9a467015420675"
+    },
+    "views": [
+      {
+        "id": "main-path",
+        "label": "从头到尾的主链路",
+        "focus": [
+          "lp",
+          "authui",
+          "mypage",
+          "vercel",
+          "firestore"
+        ],
+        "note": "LP → ログイン → マイページ → /api/* → Firestore。"
+      },
+      {
+        "id": "in-browser",
+        "label": "浏览器内计算",
+        "focus": [
+          "mypage",
+          "engine"
+        ],
+        "note": "命式与每日评分全部在浏览器里算，不经过任何接口。"
+      },
+      {
+        "id": "billing",
+        "label": "决済链路",
+        "focus": [
+          "mypage",
+          "payui",
+          "cloudrun",
+          "firestore"
+        ],
+        "note": "plan / paymentStatus 只能由 Cloud Run（Admin SDK）改写。"
+      },
+      {
+        "id": "with-issues",
+        "label": "带 ! 的环节",
+        "focus": [
+          "vercel",
+          "payui",
+          "cloudrun",
+          "mypage"
+        ],
+        "note": "3 个接口没有画面入口；PREMIUM 前端封着；解约定时器未见；専門家タブ COMING。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "lp",
+      "type": "frontend",
+      "label": "LP「/」",
+      "sublabel": "20 部件 · 60 操作点",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/pages/LandingPage.jsx",
+          "line": 1
+        },
+        {
+          "path": "src/components/landing/LandingHeader.jsx",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "authui",
+      "type": "frontend",
+      "label": "ログイン / 新規登録",
+      "sublabel": "モーダル · 39 操作点",
+      "pos": [
+        260,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/components/auth/LoginModal.jsx",
+          "line": 1
+        },
+        {
+          "path": "src/components/auth/SignupModal.jsx",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "mypage",
+      "type": "frontend",
+      "label": "マイページ /result",
+      "sublabel": "5 タブ · 158 操作点",
+      "tag": "! 専門家 COMING",
+      "pos": [
+        480,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/pages/FortuneResult.jsx",
+          "line": 1030,
+          "label": "タブ定義"
+        },
+        {
+          "path": "src/components/tabs/CompatTab.jsx",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "vercel",
+      "type": "cloud",
+      "label": "Vercel /api/*",
+      "sublabel": "12 接口 · Claude API · KV",
+      "tag": "! 3 个没有画面入口",
+      "pos": [
+        720,
+        300
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "api/generate-self-reading.js",
+          "line": 1
+        },
+        {
+          "path": "api/popo-chat.js",
+          "line": 214,
+          "label": "入口なし"
+        }
+      ]
+    },
+    {
+      "id": "firestore",
+      "type": "database",
+      "label": "Cloud Firestore",
+      "sublabel": "users/{uid} · billing",
+      "pos": [
+        950,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "firestore.rules",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "fbauth",
+      "type": "security",
+      "label": "Firebase Auth",
+      "sublabel": "メール+PW / Google",
+      "pos": [
+        260,
+        140
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/contexts/AuthContext.jsx",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "payui",
+      "type": "frontend",
+      "label": "決済 /payment/*",
+      "sublabel": "LIGHT 可 · PREMIUM 封鎖",
+      "tag": "! PREMIUM 準備中",
+      "pos": [
+        480,
+        140
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/pages/LightPaymentPage.jsx",
+          "line": 1
+        },
+        {
+          "path": "src/pages/PremiumPaymentPage.jsx",
+          "line": 222,
+          "label": "封鎖フラグ"
+        }
+      ]
+    },
+    {
+      "id": "cloudrun",
+      "type": "backend",
+      "label": "Cloud Run 決済 API",
+      "sublabel": "12 接口 /v1/* · J-Payment",
+      "tag": "? 定时器未见",
+      "pos": [
+        720,
+        140
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloud-run/payment-api/src/server.mjs",
+          "line": 3743,
+          "label": "reconcile"
+        }
+      ]
+    },
+    {
+      "id": "engine",
+      "type": "frontend",
+      "label": "命式・日運の計算",
+      "sublabel": "ブラウザ内 · 接口なし",
+      "tag": "线上 0 差异",
+      "pos": [
+        480,
+        460
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/engines/meishikiEngine.js",
+          "line": 1
+        },
+        {
+          "path": "src/logic/fortuneCalc.js",
+          "line": 126,
+          "label": "calcDailyScore"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "浏览器里的网页（React SPA）",
+      "wraps": [
+        "lp",
+        "authui",
+        "mypage"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c-lp-auth",
+      "from": "lp",
+      "to": "authui",
+      "label": "無料で始める",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-auth-my",
+      "from": "authui",
+      "to": "mypage",
+      "label": "登录成功",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-my-api",
+      "from": "mypage",
+      "to": "vercel",
+      "label": "/api/* + ID token",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-api-fs",
+      "from": "vercel",
+      "to": "firestore",
+      "label": "Admin SDK",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-auth-fb",
+      "from": "authui",
+      "to": "fbauth",
+      "label": "邮箱 + 密码",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "c-my-pay",
+      "from": "mypage",
+      "to": "payui",
+      "label": "アップグレード",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "c-pay-cr",
+      "from": "payui",
+      "to": "cloudrun",
+      "label": "/v1/payments/*",
+      "variant": "default"
+    },
+    {
+      "id": "c-cr-fs",
+      "from": "cloudrun",
+      "to": "firestore",
+      "label": "plan 更新",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "c-my-engine",
+      "from": "mypage",
+      "to": "engine",
+      "label": "calcMeishiki",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "怎么读",
+      "items": [
+        "只画本体自身：LP → ログイン → マイページ → /api/* → Firestore",
+        "名称全部是网页上的日文原文",
+        "每个按钮的明细在 index.html「① 本体 › 界面链路」"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "! 已制作但没接通",
+      "items": [
+        "popo-chat：接口与 AiChatTab 都做了，部件被摘掉",
+        "ranking API：站内无页面，只给外部用",
+        "PREMIUM：后端已实现，前端 6 处入口全部封着"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "规模",
+      "items": [
+        "8 页面 · 89 层 · 332 操作点",
+        "Vercel 12 接口 · Cloud Run 12 接口 · 定时 0",
+        "命式与每日评分在浏览器内计算，不经过接口"
+      ]
+    }
+  ]
+}
