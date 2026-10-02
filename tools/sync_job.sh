@@ -40,7 +40,7 @@ node "$TOOLS/diagrams_refresh.mjs" "$SITE" "$REPO" "$MAIN" || DIAG=refresh-faile
 if [ -d "$ARCHIFY" ] && [ "$DIAG" = ok ]; then
   for spec in overview.architecture overview_ja.architecture internal.dataflow internal_ja.dataflow growthpilot.dataflow growthpilot_ja.dataflow links.architecture links_ja.architecture; do
     type=${spec##*.}; html="${spec%%.*}.html"; extra=(); [[ $spec == overview* ]] && extra=(--repo-root "$REPO")
-    (cd "$ARCHIFY" && node bin/archify.mjs deliver "$type" "$SITE/$spec.json" "$SITE/$html" --quality showcase "${extra[@]}" --json >/dev/null 2>&1) || { DIAG="failed:$html"; echo "$(now) diagram failed: $html"; }
+    (cd "$ARCHIFY" && node bin/archify.mjs deliver "$type" "$SITE/$spec.json" "$SITE/$html" --quality showcase ${extra[@]+"${extra[@]}"} --json >/dev/null 2>&1) || { DIAG="failed:$html"; echo "$(now) diagram failed: $html"; }
   done
 else [ -d "$ARCHIFY" ] || DIAG=archify-missing; fi
 rm -rf "$T"
