@@ -49,7 +49,7 @@
       },
       {
         "id": "with-issues",
-        "label": "! のある区間",
+        "label": "マーク付きの区間",
         "focus": [
           "vercel",
           "payui",
@@ -114,7 +114,7 @@
       "type": "frontend",
       "label": "マイページ /result",
       "sublabel": "タブ 5 · 操作点 158",
-      "tag": "! 専門家 COMING",
+      "tag": "○ 専門家 COMING",
       "pos": [
         480,
         300
@@ -140,7 +140,7 @@
       "type": "cloud",
       "label": "Vercel /api/*",
       "sublabel": "API 12 · Claude API · KV",
-      "tag": "! 3 本に画面入口なし",
+      "tag": "▶ 3 本に画面入口なし",
       "pos": [
         720,
         300
@@ -206,7 +206,7 @@
       "type": "frontend",
       "label": "決済 /payment/*",
       "sublabel": "LIGHT 可 · PREMIUM 封鎖",
-      "tag": "! PREMIUM 準備中",
+      "tag": "▶ PREMIUM 準備中",
       "pos": [
         480,
         140
@@ -373,7 +373,7 @@
     },
     {
       "dot": "rose",
-      "title": "! 作ってあるが未接続",
+      "title": "▶ 作ってあるが未接続",
       "items": [
         "popo-chat：API も AiChatTab もあるが部品が外されている",
         "ranking API：サイト内にページなし、外部専用",

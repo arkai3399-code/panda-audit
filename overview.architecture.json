@@ -50,7 +50,7 @@
       },
       {
         "id": "with-issues",
-        "label": "带 ! 的环节",
+        "label": "带标记的环节",
         "focus": [
           "vercel",
           "payui",
@@ -115,7 +115,7 @@
       "type": "frontend",
       "label": "マイページ /result",
       "sublabel": "5 タブ · 158 操作点",
-      "tag": "! 専門家 COMING",
+      "tag": "○ 専門家 COMING",
       "pos": [
         480,
         300
@@ -141,7 +141,7 @@
       "type": "cloud",
       "label": "Vercel /api/*",
       "sublabel": "12 接口 · Claude API · KV",
-      "tag": "! 3 个没有画面入口",
+      "tag": "▶ 3 个没有画面入口",
       "pos": [
         720,
         300
@@ -207,7 +207,7 @@
       "type": "frontend",
       "label": "決済 /payment/*",
       "sublabel": "LIGHT 可 · PREMIUM 封鎖",
-      "tag": "! PREMIUM 準備中",
+      "tag": "▶ PREMIUM 準備中",
       "pos": [
         480,
         140
@@ -374,7 +374,7 @@
     },
     {
       "dot": "rose",
-      "title": "! 已制作但没接通",
+      "title": "▶ 已制作但没接通",
       "items": [
         "popo-chat：接口与 AiChatTab 都做了，部件被摘掉",
         "ranking API：站内无页面，只给外部用",

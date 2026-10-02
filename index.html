@@ -28,7 +28,10 @@
   input[type=search] { flex: 1; min-width: 200px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 13.5px; }
   label.only { color: var(--sub); display: flex; gap: 6px; align-items: center; }
   .bang, .q, .okd { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-weight: 800; font-size: 12px; flex: none; }
-  .bang { background: var(--bad); color: #220a0a; } .q { background: var(--warn); color: #2a1a00; } .okd { background: var(--ok); color: #03281b; }
+  .bang { background: var(--bad); color: #220a0a; }
+  .lv-ready { background: #38bdf8; color: #04202e; font-size: 10px; } .lv-todo { background: transparent; color: #cbd5e1; border: 2px solid #64748b; font-size: 0; } .lv-note { background: #a78bfa; color: #1e1036; font-size: 11px; border-radius: 4px; transform: rotate(45deg) scale(.82); } .lv-note > i { transform: rotate(-45deg); font-style: normal; }
+  .chip.stale { color: #fde68a; border-color: #854d0e; background: #2a1d05; } .lvf { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; } .lvf button { background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; cursor: pointer; font-size: 13px; display: flex; gap: 6px; align-items: center; } .lvf button.on { background: #e5e7eb; color: #0b0f17; font-weight: 700; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--sub); margin-top: 8px; } .legend span.it { display: flex; gap: 6px; align-items: center; } .warnline { color: var(--warn); } .q { background: var(--warn); color: #2a1a00; } .okd { background: var(--ok); color: #03281b; }
   main { display: grid; grid-template-columns: 300px 1fr; flex: 1; min-height: 0; }
   aside { border-right: 1px solid var(--line); overflow: auto; padding: 12px 8px 40px; }
   aside .cap { color: var(--mute); font-size: 12px; padding: 4px 8px 8px; }
@@ -53,21 +56,26 @@
 <body>
 <header>
   <div class="top"><h1 id="h1"></h1><div class="sys" id="sys"></div><div class="lang" id="lang"></div></div>
-  <div class="sync" id="sync"></div><div class="where" id="where"></div>
+  <div class="sync" id="sync"></div><div class="legend" id="legend"></div><div class="where" id="where"></div>
   <div class="bar" id="bar"></div>
 </header>
 <main id="main"><aside id="side"></aside><section id="view"></section></main>
 <script src="audit-data.js"></script>
+<script src="status.js" onerror="void 0"></script>
 <script>
 const A = window.AUDIT, $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const st = { sys: 'panda', tab: 'issues', group: null, q: '', only: false, lang: 'zh' };
+const st = { sys: 'panda', tab: 'issues', group: null, q: '', only: false, lv: '', lang: 'zh' };
 try { const l = localStorage.getItem('pf-audit-lang'); if (l === 'ja' || l === 'zh') st.lang = l; } catch (e) { /* file:// */ }
 const SYS = () => A.systems.find((s) => s.id === st.sys);
 
 // ── i18n：数据字段用 x / x_ja；界面与短词用下面的字典（缺译时回退中文）──
 const L = (o, k) => (st.lang === 'ja' && o && o[k + '_ja'] != null ? o[k + '_ja'] : (o ? o[k] : ''));
 const UI = {
+  '真 bug（会出错 / 结果不对）': '本物のバグ（誤作動 / 結果が違う）', '已做好，只差启动 / 接上': '完成済み・起動 / 接続待ち', '未开始（功能还没做）': '未着手（機能が未作成）', '改进 / 待决定': '改善 / 要決定',
+  '待核验（缺权限，确认不了）': '要確認（権限不足で確認不可）', '可能已解决·需复核': '解決済みの可能性・要再確認', '源码里找不到原来的位置，或已检测到修复。请人工复核后再关闭。': 'ソース内で元の位置が見つからない、または修正を検出。人が再確認してから閉じること。',
+  '真 bug': '本物のバグ', '问题清单': '問題一覧', '最后自动检查：{w}（{m} 分钟前）——同步可能已停，请联系维护者': '最終自動チェック：{w}（{m} 分前）——同期が止まっている可能性あり。管理者に連絡を',
+  '自动同步：每 5 分钟检查一次 GitHub · 最后检查 {w}': '自動同期：5 分ごとに GitHub を確認 · 最終チェック {w}',
   '全链路排查图': '全体経路 点検図', '⇄ 三者之间的衔接': '⇄ 3 システム間の接続', '条连接': '件の接続', '操作点': '操作点', '已同步到': '同期済み', '版本': '版', '来源': 'ソース', '范围': '範囲', '中文': '中文', '日本語': '日本語',
   '三个系统各自独立部署、各自有版本。这里只看它们之间的连接点。': '3 つのシステムはそれぞれ独立にデプロイされ、それぞれの版を持つ。ここではシステム間の接続点だけを見る。',
   '界面链路': '画面経路', '命令链路': 'コマンド経路', '总览图': '全体図', '接口': 'API', '依赖的接口': '依存 API', '定时任务': '定時タスク', '! 问题清单': '! 問題一覧', '? 待核验': '? 要確認', '本次变化': '今回の変更',
@@ -93,6 +101,15 @@ const UI = {
 };
 const t = (s, vars) => { let r = st.lang === 'ja' && UI[s] != null ? UI[s] : s; if (vars) for (const [k, v] of Object.entries(vars)) r = r.replace('{' + k + '}', v); return r; };
 const KIND = { 'no-ui': '接口没入口', ext: '只给外部用', unwired: '没接上', placeholder: '入口没启动', logic: '逻辑', mismatch: '口径不一致', 'broken-link': '链接失效', content: '内容缺', missing: '未实现' };
+// 标记：! 真 bug ／ ▶ 已做好只差启动 ／ ○ 未开始 ／ ◇ 改进·待决定 ／ ? 待核验（另一页签）
+const LV = { bug: ['bang', '!', '真 bug（会出错 / 结果不对）'], ready: ['bang lv-ready', '▶', '已做好，只差启动 / 接上'], todo: ['bang lv-todo', '○', '未开始（功能还没做）'], note: ['bang lv-note', '<i>◇</i>', '改进 / 待决定'] };
+const LV_ORDER = ['bug', 'ready', 'todo', 'note'];
+const lvOf = (i) => (i && LV[i.level] ? i.level : 'bug');
+const mk = (lv) => { const v = LV[lv] || LV.bug; return `<span class="${v[0]}" title="${esc(t(v[2]))}">${v[1]}</span>`; };
+const worst = (arr) => { let b = null; for (const i of arr || []) { const l = lvOf(i); if (b == null || LV_ORDER.indexOf(l) < LV_ORDER.indexOf(b)) b = l; } return b; };
+const staleChip = (o) => o && o.stale ? ` <span class="chip stale" title="${esc(t('源码里找不到原来的位置，或已检测到修复。请人工复核后再关闭。'))}">${t('可能已解决·需复核')}</span>` : '';
+const lvCounts = (arr) => { const c = {}; for (const i of arr || []) { const l = lvOf(i); c[l] = (c[l] || 0) + 1; } return c; };
+const lvSummary = (arr) => { const c = lvCounts(arr); return LV_ORDER.filter((l) => c[l]).map((l) => `${mk(l)}${c[l]}`).join(' '); };
 const dia = (f) => st.lang === 'ja' ? f.replace(/\.html$/, '_ja.html') : f;
 
 function srcLink(s, sys) {
@@ -109,65 +126,79 @@ function ctx() {
   for (const g of S.groups) for (const l of g.layers) fileGroup[l.file] ??= g.id;
   const issueGroup = (i) => i.group === 'api' ? 'api' : groupIds.has(i.group) ? i.group : (i.source && fileGroup[i.source.file]) || 'other';
   const byGroup = {}; for (const i of S.issues) (byGroup[issueGroup(i)] ||= []).push(i);
-  const opHasIssue = (file, line) => S.issues.some((i) => i.source && i.source.file === file && Math.abs(i.source.line - line) <= 4);
-  return { S, issueGroup, byGroup, opHasIssue };
+  const opIssue = (file, line) => worst(S.issues.filter((i) => i.source && i.source.file === file && Math.abs(i.source.line - line) <= 4));
+  const opHasIssue = (file, line) => { const l = opIssue(file, line); return l && (!st.only || l === 'bug'); };
+  return { S, issueGroup, byGroup, opHasIssue, opIssue };
 }
 
 function renderTop() {
   document.documentElement.lang = st.lang === 'ja' ? 'ja' : 'zh-CN'; document.title = L(A, 'title');
   $('#h1').textContent = L(A, 'title');
-  const btn = (id, title, sub, c, n) => `<button class="sysbtn ${st.sys === id ? 'on' : ''}" style="--c:${c}" data-sys="${id}"><b>${esc(title)}</b><small>${sub}${n ? `<span class="bang">!</span>${n}` : ''}</small></button>`;
-  $('#sys').innerHTML = A.systems.map((s) => btn(s.id, L(s, 'short').slice(0, 1) + ' ' + L(s, 'name').replace(/（.*$/, ''), `${s.stats.ops} ${t('操作点')} · `, s.accent, s.issues.length)).join('')
-    + btn('links', t('⇄ 三者之间的衔接'), `${A.links.items.length} ${t('条连接')} · `, '#94a3b8', A.links.items.filter((x) => x.status !== 'ok').length);
-  document.querySelectorAll('.sysbtn').forEach((b) => b.onclick = () => { st.sys = b.dataset.sys; st.group = null; st.q = ''; st.only = false; st.tab = 'issues'; render(); });
+  const btn = (id, title, sub, c, n) => `<button class="sysbtn ${st.sys === id ? 'on' : ''}" style="--c:${c}" data-sys="${id}"><b>${esc(title)}</b><small>${sub}${n || ''}</small></button>`;
+  $('#sys').innerHTML = A.systems.map((s) => btn(s.id, L(s, 'short').slice(0, 1) + ' ' + L(s, 'name').replace(/（.*$/, ''), `${s.stats.ops} ${t('操作点')} · `, s.accent, lvSummary(s.issues))).join('')
+    + btn('links', t('⇄ 三者之间的衔接'), `${A.links.items.length} ${t('条连接')} · `, '#94a3b8', lvSummary(A.links.items.filter((x) => x.status !== 'ok')));
+  document.querySelectorAll('.sysbtn').forEach((b) => b.onclick = () => { st.sys = b.dataset.sys; st.group = null; st.q = ''; st.only = false; st.lv = ''; st.tab = 'issues'; render(); });
   $('#lang').innerHTML = `<button class="${st.lang === 'zh' ? 'on' : ''}" data-l="zh">中文</button><button class="${st.lang === 'ja' ? 'on' : ''}" data-l="ja">日本語</button>`;
   document.querySelectorAll('#lang button').forEach((b) => b.onclick = () => { st.lang = b.dataset.l; try { localStorage.setItem('pf-audit-lang', st.lang); } catch (e) { /* noop */ } render(); });
 }
+function renderLegend() {
+  const ck = (window.AUDIT_STATUS && window.AUDIT_STATUS.checkedAt) || A.checkedAt; let age = '';
+  if (ck) { const m = Math.round((Date.now() - new Date(ck).getTime()) / 60000); const d = new Date(ck); const p = (x) => String(x).padStart(2, '0');
+    const when = `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    age = m > 120 ? `<span class="it warnline">⚠ ${t('最后自动检查：{w}（{m} 分钟前）——同步可能已停，请联系维护者', { w: when, m })}</span>` : `<span class="it">⟳ ${t('自动同步：每 5 分钟检查一次 GitHub · 最后检查 {w}', { w: when })}</span>`; }
+  $('#legend').innerHTML = LV_ORDER.map((l) => `<span class="it">${mk(l)} ${t(LV[l][2])}</span>`).join('') + `<span class="it"><span class="q">?</span> ${t('待核验（缺权限，确认不了）')}</span><span class="it"><span class="chip stale">${t('可能已解决·需复核')}</span></span>` + age;
+}
 function renderHead() {
+  renderLegend();
   if (st.sys === 'links') { $('#sync').innerHTML = `<span class="dim">${t('三个系统各自独立部署、各自有版本。这里只看它们之间的连接点。')}</span>`; $('#where').textContent = ''; $('#bar').innerHTML = ''; return; }
   const S = SYS(); document.documentElement.style.setProperty('--acc', S.accent);
   $('#sync').innerHTML = `● ${t('已同步到')} ${S.sync.commit ? 'commit ' : ''}<b>${esc(S.sync.commitShort)}</b>「${esc(L(S.sync, 'subject'))}」 <span class="dim">· ${t('版本')} ${esc(L(S.sync, 'version'))} · ${esc(S.sync.date.slice(0, 16).replace('T', ' '))} · ${t('来源')}：${esc(L(S.sync, 'source'))}</span>`;
   $('#where').innerHTML = `<span class="tagc">${esc(L(S, 'name'))}</span> · ${esc(L(S, 'where'))}<br>${esc(L(S, 'scale'))} · ${t('范围')}：${esc(L(S, 'scope'))}`;
-  const TABS = [['ui', st.sys === 'gp' ? '命令链路' : '界面链路', S.stats.ops], ['overview', '总览图', ''], ['api', st.sys === 'gp' ? '依赖的接口' : '接口', S.apis.length], ['cron', '定时任务', S.crons.inRepo], ['issues', '! 问题清单', S.issues.length, true], ['verify', '? 待核验', S.verify.length], ['changes', '本次变化', S.changes.length]];
+  const TABS = [['ui', st.sys === 'gp' ? '命令链路' : '界面链路', S.stats.ops], ['overview', '总览图', ''], ['api', st.sys === 'gp' ? '依赖的接口' : '接口', S.apis.length], ['cron', '定时任务', S.crons.inRepo], ['issues', '问题清单', S.issues.length, true], ['verify', '? 待核验', S.verify.length], ['changes', '本次变化', S.changes.length]];
   $('#bar').innerHTML = TABS.map(([id, name, n, bad]) => `<button class="tab ${st.tab === id ? 'on' : ''} ${bad ? 'bad' : ''}" data-tab="${id}">${esc(t(name))}${n !== '' ? `<span class="n">${n}</span>` : ''}</button>`).join('')
-    + `<input type="search" id="q" placeholder="${esc(t('在「{s}」里搜：按钮文字 / 函数名 / 接口', { s: L(S, 'short') }))}" value="${esc(st.q)}" /><label class="only"><input type="checkbox" id="only" ${st.only ? 'checked' : ''}/> ${t('只看')} <span class="bang">!</span></label>`;
+    + `<input type="search" id="q" placeholder="${esc(t('在「{s}」里搜：按钮文字 / 函数名 / 接口', { s: L(S, 'short') }))}" value="${esc(st.q)}" /><label class="only"><input type="checkbox" id="only" ${st.only ? 'checked' : ''}/> ${t('只看')} <span class="bang">!</span> ${t('真 bug')}</label>`;
   document.querySelectorAll('.tab').forEach((b) => b.onclick = () => { st.tab = b.dataset.tab; render(); });
   $('#q').oninput = (e) => { st.q = e.target.value; renderView(); }; $('#only').onchange = (e) => { st.only = e.target.checked; renderView(); };
 }
 function renderSide() {
   const { S, byGroup } = ctx();
-  const rows = S.groups.filter((g) => g.opCount > 0 || (byGroup[g.id] || []).length).map((g) => `<div class="g ${g.title.startsWith('　') ? 'sub' : ''} ${st.group === g.id ? 'on' : ''}" data-g="${g.id}"><span>${esc(t(L(g, 'title').trim()))}</span><span class="c">${(byGroup[g.id] || []).length ? '<span class="bang">!</span>' : ''}${g.opCount}</span></div>`);
-  const api = S.apis.length ? `<div class="cap" style="margin-top:10px">${t('页面之外')}</div><div class="g ${st.group === 'api' ? 'on' : ''}" data-g="api"><span>${t('接口')}</span><span class="c">${(byGroup.api || []).length ? '<span class="bang">!</span>' : ''}${S.apis.length}</span></div>` : '';
+  const rows = S.groups.filter((g) => g.opCount > 0 || (byGroup[g.id] || []).length).map((g) => `<div class="g ${g.title.startsWith('　') ? 'sub' : ''} ${st.group === g.id ? 'on' : ''}" data-g="${g.id}"><span>${esc(t(L(g, 'title').trim()))}</span><span class="c">${worst(byGroup[g.id]) ? mk(worst(byGroup[g.id])) : ''}${g.opCount}</span></div>`);
+  const api = S.apis.length ? `<div class="cap" style="margin-top:10px">${t('页面之外')}</div><div class="g ${st.group === 'api' ? 'on' : ''}" data-g="api"><span>${t('接口')}</span><span class="c">${worst(byGroup.api) ? mk(worst(byGroup.api)) : ''}${S.apis.length}</span></div>` : '';
   $('#side').innerHTML = `<div class="cap">${t(st.sys === 'gp' ? '按流程顺序（从取数到发布）' : '按网页实际顺序（从入口到深处）')}</div><div class="g ${!st.group ? 'on' : ''}" data-g=""><span>${t('全部')}</span><span class="c">${S.stats.ops}</span></div>` + rows.join('') + api;
   document.querySelectorAll('.g').forEach((el) => el.onclick = () => { st.group = el.dataset.g || null; if (st.group === 'api' && st.tab === 'ui') st.tab = 'api'; render(); });
 }
 function viewUI() {
-  const { S, opHasIssue } = ctx(); let html = '', shown = 0;
+  const { S, opHasIssue, opIssue } = ctx(); let html = '', shown = 0;
   for (const g of S.groups) { if (st.group && st.group !== g.id) continue;
     for (const l of g.layers) { const rows = l.ops.filter((o) => hit([o.label, o.handler, o.handler_ja || '', o.kind, l.file, (o.apis || []).join(' '), o.effects.join(' '), o.tab || ''].join(' ')) && (!st.only || opHasIssue(l.file, o.line)));
       if (!rows.length) continue; shown += rows.length;
       html += `<tr class="fileh"><td></td><td colspan="3">${esc(t(L(g, 'title').trim()))} › <span class="mono">${esc(l.file)}</span>${l.vanilla ? ' <span class="chip k">vanilla JS</span>' : ''}${l.reachable === false ? ` <span class="chip br">${t('未接到页面')}</span>` : ''} · ${rows.length}</td></tr>`
-        + rows.map((o) => `<tr><td class="flag">${opHasIssue(l.file, o.line) ? '<span class="bang">!</span>' : ''}</td><td><span class="pos">${o.tab ? esc(o.tab) + ' › ' : ''}${esc(o.label || t('（无文字，见源码）'))}</span><br><span class="mono dim">${esc(L(o, 'handler'))}</span></td><td><span class="chip k">${t(o.kind)}</span>${o.effects.map((e) => `<span class="chip">${esc(t(e))}</span>`).join('')}${(o.apis || []).map((p) => `<span class="chip api">${esc(p)}</span>`).join('')}</td><td>${srcLink({ file: l.file, line: o.line }, S)}</td></tr>`).join(''); } }
-  const empties = st.q || st.only ? '' : S.groups.filter((g) => !g.layers.length && (!st.group || st.group === g.id)).map((g) => `<tr><td class="flag"><span class="bang">!</span></td><td class="pos">${esc(L(g, 'title'))}</td><td colspan="2" class="dim">${t('未实现——这一段没有任何代码。')}</td></tr>`).join('');
+        + rows.map((o) => `<tr><td class="flag">${opIssue(l.file, o.line) ? mk(opIssue(l.file, o.line)) : ''}</td><td><span class="pos">${o.tab ? esc(o.tab) + ' › ' : ''}${esc(o.label || t('（无文字，见源码）'))}</span><br><span class="mono dim">${esc(L(o, 'handler'))}</span></td><td><span class="chip k">${t(o.kind)}</span>${o.effects.map((e) => `<span class="chip">${esc(t(e))}</span>`).join('')}${(o.apis || []).map((p) => `<span class="chip api">${esc(p)}</span>`).join('')}</td><td>${srcLink({ file: l.file, line: o.line }, S)}</td></tr>`).join(''); } }
+  const empties = st.q || st.only ? '' : S.groups.filter((g) => !g.layers.length && (!st.group || st.group === g.id)).map((g) => `<tr><td class="flag">${mk('todo')}</td><td class="pos">${esc(L(g, 'title'))}</td><td colspan="2" class="dim">${t('未实现——这一段没有任何代码。')}</td></tr>`).join('');
   return `<p class="lead">${t(st.sys === 'gp' ? '每一行 = 平台侧的一个命令 / 定时任务。' : '每一行 = 画面上的一个操作点（按钮 / 表单 / 输入 / 链接）。「做什么」是对处理函数的静态推断，不是运行时跟踪。')} ${t('显示')} ${shown} / ${S.stats.ops}。</p>` + (shown || empties ? `<table><tr><th></th><th>${t('位置 · 处理')}</th><th>${t('做什么')}</th><th>${t('源码')}</th></tr>${html}${empties}</table>` : `<div class="empty">${t('没有匹配的条目')}</div>`);
 }
 function viewAPI() {
-  const { S } = ctx(); if (!S.apis.length) return `<div class="note">${esc(L(S, 'apisNote') || t('没有接口。'))}</div>`;
-  const rows = S.apis.filter((a) => hit([a.path, a.host, a.auth, a.file].join(' ')) && (!st.only || (!a.uiCallers.length && !/health/.test(a.path) && !a.dynamic)));
+  const { S } = ctx(); const apiLv = (a) => worst(S.issues.filter((i) => i.source && i.source.file === a.file)) || 'ready'; if (!S.apis.length) return `<div class="note">${esc(L(S, 'apisNote') || t('没有接口。'))}</div>`;
+  const rows = S.apis.filter((a) => hit([a.path, a.host, a.auth, a.file].join(' ')) && (!st.only || (!a.uiCallers.length && !/health/.test(a.path) && !a.dynamic && apiLv(a) === 'bug')));
   return (S.apisNote ? `<div class="note">${esc(L(S, 'apisNote'))}</div>` : `<p class="lead">${t('接口清单与「画面入口」。入口 = 从页面可达的代码里，直接或经 lib 函数引用到该接口的位置。')}</p>`) + `<table><tr><th></th><th>${t('接口')}</th><th>${t('宿主 · 认证')}</th><th>${t(st.sys === 'gp' ? '调用位置' : '画面入口')}</th><th>${t('源码')}</th></tr>` + rows.map((a) => { const bad = !a.uiCallers.length && !/health/.test(a.path) && !a.dynamic;
-    return `<tr><td class="flag">${bad ? '<span class="bang">!</span>' : a.dynamic ? '<span class="q">?</span>' : ''}</td><td><span class="mono pos">${esc(a.path)}</span>${a.actions.length ? '<br>' + a.actions.map((x) => `<span class="chip k">action=${esc(x)}</span>`).join('') : ''}${a.ai ? '<span class="chip">Claude API</span>' : ''}</td><td><span class="chip">${esc(t(a.host))}</span><span class="chip k">${esc(t(a.auth))}</span></td><td>${a.uiCallers.length ? a.uiCallers.slice(0, 4).map((c) => srcLink({ file: c.file, line: c.line }, S)).join('<br>') + (a.uiCallers.length > 4 ? `<br><span class="dim">… ${t('共')} ${a.uiCallers.length} ${t('处')}</span>` : '') : a.dynamic ? `<span class="dim">${t('地址由 prepare 动态返回，静态确认不了')}</span>` : /health/.test(a.path) ? `<span class="dim">${t('健康检查')}</span>` : `<span style="color:var(--bad)">${t('画面上没有入口')}</span>`}</td><td>${srcLink({ file: a.file, line: a.line }, S)}</td></tr>`; }).join('') + '</table>';
+    return `<tr><td class="flag">${bad ? mk(apiLv(a)) : a.dynamic ? '<span class="q">?</span>' : ''}</td><td><span class="mono pos">${esc(a.path)}</span>${a.actions.length ? '<br>' + a.actions.map((x) => `<span class="chip k">action=${esc(x)}</span>`).join('') : ''}${a.ai ? '<span class="chip">Claude API</span>' : ''}</td><td><span class="chip">${esc(t(a.host))}</span><span class="chip k">${esc(t(a.auth))}</span></td><td>${a.uiCallers.length ? a.uiCallers.slice(0, 4).map((c) => srcLink({ file: c.file, line: c.line }, S)).join('<br>') + (a.uiCallers.length > 4 ? `<br><span class="dim">… ${t('共')} ${a.uiCallers.length} ${t('处')}</span>` : '') : a.dynamic ? `<span class="dim">${t('地址由 prepare 动态返回，静态确认不了')}</span>` : /health/.test(a.path) ? `<span class="dim">${t('健康检查')}</span>` : `<span style="color:var(--bad)">${t('画面上没有入口')}</span>`}</td><td>${srcLink({ file: a.file, line: a.line }, S)}</td></tr>`; }).join('') + '</table>';
 }
 function viewIssues() {
-  const { S, issueGroup } = ctx(); const rows = S.issues.filter((i) => (!st.group || issueGroup(i) === st.group) && hit([i.where, i.where_ja || '', i.what, i.what_ja || '', i.source?.file || ''].join(' ')));
-  return `<p class="lead">${esc(t('只列「{s}」自己的问题：东西做了，但链路断在某一环；或这一段还没有。跨系统对不上的，见右上「三者之间的衔接」。', { s: L(S, 'short') }))}</p>` + (rows.length ? `<table><tr><th></th><th>${t('位置')}</th><th>${t('情况')}</th><th>${t('源码')}</th></tr>` + rows.map((i) => `<tr><td class="flag"><span class="bang">!</span></td><td><span class="pos">${esc(L(i, 'where'))}</span><br><span class="chip k">${t(KIND[i.kind] || i.kind)}</span></td><td>${esc(L(i, 'what'))}</td><td>${srcLink(i.source, S)}</td></tr>`).join('') + '</table>' : `<div class="empty">${t('这个分组没有已确认的问题')}</div>`);
+  const { S, issueGroup } = ctx(); const want = st.only ? 'bug' : st.lv;
+  const base = S.issues.filter((i) => (!st.group || issueGroup(i) === st.group)); const cnt = lvCounts(base);
+  const filt = `<div class="lvf">` + [['', t('全部') + ' ' + base.length], ...LV_ORDER.filter((l) => cnt[l]).map((l) => [l, `${mk(l)} ${t(LV[l][2])} ${cnt[l]}`])].map(([k, lab]) => `<button class="${want === k ? 'on' : ''}" data-lv="${k}">${lab}</button>`).join('') + `</div>`;
+  setTimeout(() => document.querySelectorAll('.lvf button').forEach((b) => b.onclick = () => { st.lv = b.dataset.lv; st.only = false; render(); }));
+  const order = (a, b) => LV_ORDER.indexOf(lvOf(a)) - LV_ORDER.indexOf(lvOf(b));
+  const rows = base.filter((i) => (!want || lvOf(i) === want) && hit([i.where, i.where_ja || '', i.what, i.what_ja || '', i.source?.file || ''].join(' '))).sort(order);
+  return filt + `<p class="lead">${esc(t('只列「{s}」自己的问题：东西做了，但链路断在某一环；或这一段还没有。跨系统对不上的，见右上「三者之间的衔接」。', { s: L(S, 'short') }))}</p>` + (rows.length ? `<table><tr><th></th><th>${t('位置')}</th><th>${t('情况')}</th><th>${t('源码')}</th></tr>` + rows.map((i) => `<tr><td class="flag">${mk(lvOf(i))}</td><td><span class="pos">${esc(L(i, 'where'))}</span><br><span class="chip k">${t(KIND[i.kind] || i.kind)}</span>${staleChip(i)}</td><td>${esc(L(i, 'what'))}</td><td>${srcLink(i.source, S)}</td></tr>`).join('') + '</table>' : `<div class="empty">${t('这个分组没有已确认的问题')}</div>`);
 }
-function viewVerify() { const { S } = ctx(); return `<p class="lead">${t('静态分析和只读检查确认不了的事项——需要后台权限、真实账户或另一台机器才能下结论。不写成「已完成」，也不写成「有问题」。')}</p><table><tr><th></th><th>${t('事项')}</th><th>${t('为什么现在确认不了')}</th><th>${t('谁能确认')}</th><th>${t('源码')}</th></tr>` + S.verify.filter((v) => hit([v.item, v.item_ja || '', v.why, v.who].join(' '))).map((v) => `<tr><td class="flag"><span class="q">?</span></td><td class="pos">${esc(L(v, 'item'))}</td><td>${esc(L(v, 'why'))}</td><td class="dim">${esc(L(v, 'who'))}</td><td>${srcLink(v.source, S)}</td></tr>`).join('') + '</table>'; }
+function viewVerify() { const { S } = ctx(); return `<p class="lead">${t('静态分析和只读检查确认不了的事项——需要后台权限、真实账户或另一台机器才能下结论。不写成「已完成」，也不写成「有问题」。')}</p><table><tr><th></th><th>${t('事项')}</th><th>${t('为什么现在确认不了')}</th><th>${t('谁能确认')}</th><th>${t('源码')}</th></tr>` + S.verify.filter((v) => hit([v.item, v.item_ja || '', v.why, v.who].join(' '))).map((v) => `<tr><td class="flag"><span class="q">?</span></td><td class="pos">${esc(L(v, 'item'))}${staleChip(v)}</td><td>${esc(L(v, 'why'))}</td><td class="dim">${esc(L(v, 'who'))}</td><td>${srcLink(v.source, S)}</td></tr>`).join('') + '</table>'; }
 function viewChanges() { const { S } = ctx(); return `<p class="lead">${esc(L(S, 'changesNote'))}。${t('改到评分 / 选角逻辑的：')}<b>${S.changes.filter((c) => c.scoring).length}</b> ${t('个')}。</p><table><tr><th>${t('版本')}</th><th>${t('日期')}</th><th>${t('内容')}</th><th>${t('涉及')}</th></tr>` + S.changes.filter((c) => hit(c.subject + (c.subject_ja || '') + c.hash)).map((c) => `<tr><td>${S.srcBase === 'github' ? `<a class="src" target="_blank" href="${A.repo}/commit/${c.hash}">${c.hash}</a>` : `<span class="srcp">${esc(c.hash)}</span>`}</td><td class="dim">${c.date}</td><td>${c.scoring ? `<span class="chip br">${t('评分')}</span>` : ''}${esc(L(c, 'subject'))}</td><td>${c.area.map((x) => `<span class="chip">${esc(t(x))}</span>`).join('')}<span class="chip k">${c.files} ${t('文件')}</span></td></tr>`).join('') + '</table>'; }
 function viewCron() { const { S } = ctx(); return `<div class="note">${esc(L(S.crons, 'note'))}</div>` + (S.crons.needed.length ? `<table><tr><th></th><th>${t(st.sys === 'gp' ? '定时任务' : '需要定时、但仓库里没有定时器的任务')}</th><th>${t('源码')}</th></tr>` + S.crons.needed.map((c) => `<tr><td class="flag"><span class="q">?</span></td><td>${esc(L(c, 'what'))}</td><td>${srcLink(c.source, S)}</td></tr>`).join('') + '</table>' : ''); }
 function viewOverview() { const { S } = ctx(); return `<p class="lead">${esc(L(S.diagram, 'lead'))} <a class="src" href="${dia(S.diagram.file)}" target="_blank">${t('单独打开 ↗')}</a></p><iframe src="${dia(S.diagram.file)}" title="overview"></iframe>`; }
 function viewLinks() {
-  const ST = { ok: ['okd', '✓', 'st-ok', '已接通'], bad: ['bang', '!', 'st-bad', '对不上'], gap: ['q', '?', 'st-gap', '还没有'] };
-  return `<p class="lead">${esc(L(A.links, 'lead'))} <a class="src" href="${dia(A.links.diagram.file)}" target="_blank">${t('单独打开衔接图 ↗')}</a></p><table><tr><th></th><th>${t('从 → 到')}</th><th>${t('连接点')}</th><th>${t('状态与依据')}</th><th>${t('源码')}</th></tr>` + A.links.items.map((l) => { const s = ST[l.status]; return `<tr><td class="flag"><span class="${s[0]}">${s[1]}</span></td><td class="arrow">${esc(t(l.from))} → ${esc(t(l.to))}</td><td class="pos">${esc(L(l, 'what'))}</td><td><b class="${s[2]}">${t(s[3])}</b>　${esc(L(l, 'evidence'))}</td><td>${srcLink(l.source)}</td></tr>`; }).join('') + `</table><div style="height:14px"></div><iframe src="${dia(A.links.diagram.file)}" title="links"></iframe>`;
+  const ST = { ok: ['okd', '✓', 'st-ok', '已接通'], bad: ['bang', '!', 'st-bad', '对不上'], gap: ['bang lv-todo', '○', 'st-gap', '还没有'] };
+  return `<p class="lead">${esc(L(A.links, 'lead'))} <a class="src" href="${dia(A.links.diagram.file)}" target="_blank">${t('单独打开衔接图 ↗')}</a></p><table><tr><th></th><th>${t('从 → 到')}</th><th>${t('连接点')}</th><th>${t('状态与依据')}</th><th>${t('源码')}</th></tr>` + A.links.items.map((l) => { const s = ST[l.status]; return `<tr><td class="flag">${l.status === 'ok' ? `<span class="${s[0]}">${s[1]}</span>` : mk(l.level || (l.status === 'bad' ? 'bug' : 'todo'))}</td><td class="arrow">${esc(t(l.from))} → ${esc(t(l.to))}</td><td class="pos">${esc(L(l, 'what'))}</td><td><b class="${s[2]}">${t(s[3])}</b>　${esc(L(l, 'evidence'))}${staleChip(l)}</td><td>${srcLink(l.source)}</td></tr>`; }).join('') + `</table><div style="height:14px"></div><iframe src="${dia(A.links.diagram.file)}" title="links"></iframe>`;
 }
 function renderView() { $('#view').innerHTML = st.sys === 'links' ? viewLinks() : { ui: viewUI, api: viewAPI, issues: viewIssues, verify: viewVerify, changes: viewChanges, cron: viewCron, overview: viewOverview }[st.tab](); }
 function render() {

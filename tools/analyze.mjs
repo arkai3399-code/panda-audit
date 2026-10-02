@@ -184,29 +184,29 @@ for (const a of apis) {
   else if (jsxLibs.length) { what = `接口做好了，调用它的画面部件（${jsxLibs.join(', ')}）也做好了，但该部件在页面里的 import 被摘掉——画面上没有入口。`; what_ja = `API も、それを呼ぶ画面部品（${jsxLibs.join(', ')}）もできているが、その部品の import がページから外されている——画面に入口がない。`; }
   else if (a.libCallers.length) { what = `接口和前端函数都做好了（${fns.join(', ')}），但没有任何画面调用它。`; what_ja = `API もフロント関数（${fns.join(', ')}）もできているが、どの画面からも呼ばれていない。`; }
   else { what = '接口已实现，但 src/ 里没有任何地方调用——画面上没有入口。'; what_ja = 'API は実装済みだが、src/ 内に呼び出しが一つもない——画面に入口がない。'; }
-  issues.push({ kind: ext ? 'ext' : 'no-ui', where: `${a.host} ${a.path}`, group: 'api', what, what_ja, source: { file: a.file, line: a.line } });
+  issues.push({ kind: ext ? 'ext' : 'no-ui', level: ext ? 'note' : 'ready', where: `${a.host} ${a.path}`, group: 'api', what, what_ja, source: { file: a.file, line: a.line } });
 }
-for (const L of G.unwired.layers.filter((x) => x.ops.length > 0 || /tabs\//.test(x.file))) issues.push({ kind: 'unwired', where: path.basename(L.file), group: 'unwired', what: `画面部品已制作（${L.ops.length} 个操作点），但从 main.jsx 出发的 import 链到不了它——页面上不显示。`, what_ja: `画面部品は作成済み（操作点 ${L.ops.length}）だが、main.jsx から辿る import 連鎖が届かない——ページに表示されない。`, source: { file: L.file, line: 1 } });
+for (const L of G.unwired.layers.filter((x) => x.ops.length > 0 || /tabs\//.test(x.file))) issues.push({ kind: 'unwired', level: /AiChatTab/.test(L.file) ? 'ready' : 'note', where: path.basename(L.file), group: 'unwired', what: `画面部品已制作（${L.ops.length} 个操作点），但从 main.jsx 出发的 import 链到不了它——页面上不显示。`, what_ja: `画面部品は作成済み（操作点 ${L.ops.length}）だが、main.jsx から辿る import 連鎖が届かない——ページに表示されない。`, source: { file: L.file, line: 1 } });
 const curated = [
-  ['src/pages/FortuneResult.jsx', /id: "expert".*COMING/, '基本タブ列 › 専門家に相談', '入口做了，但功能没启动：标签标着 COMING，点进去只有预告内容，没有任何可操作按钮（ExpertTab 操作点 0）。', 'expert', null, '入口はあるが機能は未稼働：タブに COMING と表示され、開いても予告文のみで操作できるボタンがない（ExpertTab の操作点 0）。'],
-  ['src/components/blocks/TodayFortuneBlock.jsx', /const kiH = ki && \(calc\.kishin/, '運勢タイムライン › 4 枚のスコアカード短評', '喜神标志恒为 false：拿五行数组（木火土金水）去比当日天干（甲乙…），永远不命中。追い風系短评与「忌神重叠」长文案分支不会出现。', 'timeline', null, '喜神フラグが常に false：五行の配列（木火土金水）を当日の天干（甲乙…）と比較しており、絶対に一致しない。追い風系の短評と「忌神重なり」の長文分岐は出現しない。'],
-  ['src/pages/FortuneResult.jsx', /genComment\(workScore, 'work'\)/, '仕事運（詳細）› 短評', '详情页调用 genComment 不传十神与标志，首页卡片传。同一天同一类别，两处短评可能不同。', 'detail', null, '詳細ページの genComment は十神とフラグを渡さず、トップのカードは渡す。同じ日・同じカテゴリでも 2 か所の短評が異なりうる。'],
-  ['src/pages/FortuneResult.jsx', /genComment\(moneyScore, 'money'\)/, '金運（詳細）› 短評', '同上：不传十神，与首页卡片的短评可能不一致。', 'detail', null, '同上：十神を渡さないため、トップのカードの短評と一致しないことがある。'],
-  ['src/logic/fortuneCalc.js', /const SHUO = \[new Date\(2026/, '運勢タイムライン › 六曜 / 開運日カレンダー', '六曜的朔日表只写了 2026 年。2027-01-01 起六曜与「大開運日」标记会算错（分数不受影响）。', 'timeline', null, '六曜の朔日表は 2026 年分しかない。2027-01-01 以降、六曜と「大開運日」の表示が誤る（スコアには影響しない）。'],
-  ['src/engines/meishikiEngine.js', /\|\| daiunList\[0\]/, '基本命式 › 現在の大運', '年龄超出 8 步大运范围时回退到第 1 步（台账 BL-01）：高龄用户会显示幼年期的大运，并影响每日分数。', 'meishiki', null, '年齢が大運 8 本の範囲を超えると 1 本目に戻る（台帳 BL-01）：高齢ユーザーには幼少期の大運が表示され、日々のスコアにも影響する。'],
-  ['api/_lib/auth.js', /export function hasPaidEntitlement|function hasPaidEntitlement/, 'AI 鑑定 / 付费判定', '付费判定不看 currentPeriodEnd（台账 FR-01）：若解约回调缺失，付费权限会一直有效。', 'api', 'AI 鑑定 / 有料判定', '有料判定が currentPeriodEnd を見ない（台帳 FR-01）：解約コールバックが欠けると有料権限が無期限に残る。'],
+  ['src/pages/FortuneResult.jsx', /id: "expert".*COMING/, '基本タブ列 › 専門家に相談', '入口做了，但功能没启动：标签标着 COMING，点进去只有预告内容，没有任何可操作按钮（ExpertTab 操作点 0）。', 'expert', null, '入口はあるが機能は未稼働：タブに COMING と表示され、開いても予告文のみで操作できるボタンがない（ExpertTab の操作点 0）。', 'todo'],
+  ['src/components/blocks/TodayFortuneBlock.jsx', /const kiH = ki && \(calc\.kishin/, '運勢タイムライン › 4 枚のスコアカード短評', '喜神标志恒为 false：拿五行数组（木火土金水）去比当日天干（甲乙…），永远不命中。追い風系短评与「忌神重叠」长文案分支不会出现。', 'timeline', null, '喜神フラグが常に false：五行の配列（木火土金水）を当日の天干（甲乙…）と比較しており、絶対に一致しない。追い風系の短評と「忌神重なり」の長文分岐は出現しない。', 'bug'],
+  ['src/pages/FortuneResult.jsx', /genComment\(workScore, 'work'\)/, '仕事運（詳細）› 短評', '详情页调用 genComment 不传十神与标志，首页卡片传。同一天同一类别，两处短评可能不同。', 'detail', null, '詳細ページの genComment は十神とフラグを渡さず、トップのカードは渡す。同じ日・同じカテゴリでも 2 か所の短評が異なりうる。', 'bug'],
+  ['src/pages/FortuneResult.jsx', /genComment\(moneyScore, 'money'\)/, '金運（詳細）› 短評', '同上：不传十神，与首页卡片的短评可能不一致。', 'detail', null, '同上：十神を渡さないため、トップのカードの短評と一致しないことがある。', 'bug'],
+  ['src/logic/fortuneCalc.js', /const SHUO = \[new Date\(2026/, '運勢タイムライン › 六曜 / 開運日カレンダー', '六曜的朔日表只写了 2026 年。2027-01-01 起六曜与「大開運日」标记会算错（分数不受影响）。', 'timeline', null, '六曜の朔日表は 2026 年分しかない。2027-01-01 以降、六曜と「大開運日」の表示が誤る（スコアには影響しない）。', 'bug'],
+  ['src/engines/meishikiEngine.js', /\|\| daiunList\[0\]/, '基本命式 › 現在の大運', '年龄超出 8 步大运范围时回退到第 1 步（台账 BL-01）：高龄用户会显示幼年期的大运，并影响每日分数。', 'meishiki', null, '年齢が大運 8 本の範囲を超えると 1 本目に戻る（台帳 BL-01）：高齢ユーザーには幼少期の大運が表示され、日々のスコアにも影響する。', 'bug'],
+  ['api/_lib/auth.js', /export function hasPaidEntitlement|function hasPaidEntitlement/, 'AI 鑑定 / 付费判定', '付费判定不看 currentPeriodEnd（台账 FR-01）：若解约回调缺失，付费权限会一直有效。', 'api', 'AI 鑑定 / 有料判定', '有料判定が currentPeriodEnd を見ない（台帳 FR-01）：解約コールバックが欠けると有料権限が無期限に残る。', 'bug'],
 ];
-for (const [file, re, where, what, group, where_ja, what_ja] of curated) { const ln = existsSync(path.join(SNAP, file)) ? grepLine(file, re) : null; if (ln) issues.push({ kind: 'logic', where, what, group, where_ja: where_ja || where, what_ja, source: { file, line: ln } }); }
+for (const [file, re, where, what, group, where_ja, what_ja, level] of curated) { const ln = existsSync(path.join(SNAP, file)) ? grepLine(file, re) : null; issues.push({ kind: 'logic', level: level || 'bug', stale: !ln, where, what, group, where_ja: where_ja || where, what_ja, source: { file, line: ln || 1 } }); }
 const placeholders = [
   ['src/components/AccountDropdown.jsx', /プレミアムプランは準備中なンダ/, 'アカウントメニュー › プレミアムへの導線（LIGHT 会員）', '按钮做了，但功能没启动：点了只弹「プレミアムプランは準備中」提示。', 'ui', 'ボタンはあるが機能は未稼働：押すと「プレミアムプランは準備中」と出るだけ。'],
   ['src/components/landing/PricingSection.jsx', /ctaJp: '近日公開'/, 'LP › 料金プラン › PREMIUM カード', '入口做了但封着：CTA 显示「近日公開」且 disabled。', 'ui', '入口はあるが封鎖中：CTA は「近日公開」表示で disabled。'],
   ['src/components/landing/LandingHeader.jsx', /lpx-mm-prem" disabled/, 'LP ハンバーガーメニュー › プレミアムプランを始める', '菜单项做了但 disabled（販売準備中）。', 'ui', 'メニュー項目はあるが disabled（販売準備中）。'],
   ['src/components/auth/SignupModal.jsx', /key: 'premium'.*disabled: true/, '新規登録 › プラン選択 › PREMIUM ★', '选项做了但 disabled，价格栏显示「準備中」。', 'ui', '選択肢はあるが disabled。価格欄は「準備中」表示。'],
-  ['src/pages/PremiumPaymentPage.jsx', /const PREMIUM_SALES_OPEN = false/, '決済ページ /payment/premium', '整页被替换成「準備中」。但 Cloud Run 的 /v1/payments/jpayment/premium-initial 已实现——后端做了，前端封着。', 'pay', 'ページ全体が「準備中」表示に差し替え。ただし Cloud Run の /v1/payments/jpayment/premium-initial は実装済み——バックエンドはできていて、フロントが封鎖している。'],
+  ['src/pages/PremiumPaymentPage.jsx', /const PREMIUM_SALES_OPEN = false/, '決済ページ /payment/premium', '整页被替换成「準備中」。但 Cloud Run 的 /v1/payments/jpayment/premium-initial 已实现——后端做了，前端封着。', 'pay', 'ページ全体が「準備中」表示に差し替え。ただし Cloud Run の /v1/payments/jpayment/premium-initial は実装済み——バックエンドはできていて、フロントが封鎖している。', 'ready'],
   ['src/components/tabs/DreamTab.jsx', /単発購入は未実装/, 'ポポの夢解き › 単発購入ボタン', '按钮做了，但功能没启动：源码注明「Cloud Run 側の課金経路が要る」，点了只出準備中。', 'yume', 'ボタンはあるが機能は未稼働：ソースに「Cloud Run 側の課金経路が要る」と明記され、押しても準備中が出るだけ。'],
   ['src/components/compat/QrDetailPurchaseModal.jsx', /販売準備中のため押せない表示のみ/, '相性 › QR 詳細購入モーダル › PREMIUM 誘導', '按钮只显示、不可按（2026-07-30 封鎖）。', 'compat', 'ボタンは表示のみで押せない（2026-07-30 封鎖）。'],
 ];
-for (const [file, re, where, what, group, what_ja] of placeholders) { const ln = grepLine(file, re); if (ln) issues.push({ kind: 'placeholder', where, what, group, where_ja: where, what_ja, source: { file, line: ln } }); }
+for (const [file, re, where, what, group, what_ja, level] of placeholders) { const ln = existsSync(path.join(SNAP, file)) ? grepLine(file, re) : null; issues.push({ kind: 'placeholder', level: level || 'todo', stale: !ln, where, what, group, where_ja: where, what_ja, source: { file, line: ln || 1 } }); }
 
 const out = { meta, stats: { layers: layers.length, pages: jsx.filter((f) => /src\/pages\//.test(f)).length, ops: layers.reduce((s, l) => s + l.ops.length, 0), apis: apis.length, vercel: apis.filter((a) => a.host === 'Vercel').length, cloudrun: apis.filter((a) => a.host === 'Cloud Run').length, unreachable: G.unwired.layers.length }, groups, apis, issues, tabStarts };
 writeFileSync(OUT, 'window.AUDIT_SCAN = ' + JSON.stringify(out) + ';\n');
