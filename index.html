@@ -51,6 +51,20 @@
   iframe { width: 100%; height: calc(100vh - 250px); min-height: 520px; border: 1px solid var(--line); border-radius: 14px; background: #0b0f17; }
   .empty { color: var(--sub); padding: 30px; text-align: center; } .note { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; color: #cdd6e3; margin-bottom: 12px; }
   .arrow { color: var(--sub); white-space: nowrap; } .st-ok { color: var(--ok); } .st-bad { color: var(--bad); } .st-gap { color: #c4b5fd; }
+  /* 实时编辑（只在本机 http://127.0.0.1:8795/ 显示；公开站点不加载） */
+  #live { display: none; margin-top: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 12.5px; max-height: 42vh; overflow: auto; }
+  #live.show { display: block; } #live .hd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } #live ul { margin: 6px 0 0; padding-left: 18px; } #live li { margin: 4px 0; }
+  .ldot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); display: inline-block; } .ldot.off { background: var(--mute); }
+  .ledit { color: #f59e0b; font-weight: 700; } .lpulse { animation: lpl 1.2s ease-in-out infinite; } @keyframes lpl { 50% { opacity: .35; } }
+  .lsw { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 14px; padding: 2px 10px 2px 3px; font: inherit; font-size: 12px; cursor: pointer; }
+  .lsw i { width: 26px; height: 16px; border-radius: 8px; background: var(--mute); position: relative; transition: .2s; } .lsw i:after { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: .2s; }
+  .lsw.on i { background: var(--ok); } .lsw.on i:after { left: 12px; } .lsw:disabled { opacity: .5; cursor: default; }
+  .lpill { display: inline-block; border: 1px solid #854d0e; background: #2a1d05; color: #fde68a; border-radius: 999px; padding: 0 7px; margin: 1px 3px 1px 0; font-size: 11.5px; cursor: pointer; } .lpill.n { border-color: #1e3a5f; background: #0c1a2c; color: #93c5fd; }
+  .lhunk { margin: 4px 0 6px; } .lhunk .hh { color: var(--sub); font-size: 11.5px; } .lhunk .hh a { color: var(--link); }
+  .ldiff { margin: 2px 0 0; background: #070b12; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: 11.5px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; max-height: 260px; overflow: auto; }
+  .ldiff .a { color: #86efac; } .ldiff .d { color: #fca5a5; }
+  .lvb { font-size: 10.5px; border-radius: 4px; padding: 0 5px; margin-left: 4px; border: 1px solid #854d0e; color: #fde68a; } .lvb.ed { background: #f59e0b; color: #1a1000; border-color: #f59e0b; }
+  tr.led td { background: rgba(245,158,11,.13); } tr.led td.flag { box-shadow: inset 3px 0 0 #f59e0b; } tr.lch td.flag { box-shadow: inset 3px 0 0 rgba(245,158,11,.55); }
 </style>
 </head>
 <body>
@@ -58,6 +72,7 @@
   <div class="top"><h1 id="h1"></h1><div class="sys" id="sys"></div><div class="lang" id="lang"></div></div>
   <div class="sync" id="sync"></div><div class="legend" id="legend"></div><div class="where" id="where"></div>
   <div class="bar" id="bar"></div>
+  <div id="live"></div>
 </header>
 <main id="main"><aside id="side"></aside><section id="view"></section></main>
 <script src="audit-data.js"></script>
@@ -173,7 +188,7 @@ function viewUI() {
     for (const l of g.layers) { const rows = l.ops.filter((o) => hit([o.label, o.handler, o.handler_ja || '', o.kind, l.file, (o.apis || []).join(' '), o.effects.join(' '), o.tab || ''].join(' ')) && (!st.only || opHasIssue(l.file, o.line)));
       if (!rows.length) continue; shown += rows.length;
       html += `<tr class="fileh"><td></td><td colspan="3">${esc(t(L(g, 'title').trim()))} › <span class="mono">${esc(l.file)}</span>${l.vanilla ? ' <span class="chip k">vanilla JS</span>' : ''}${l.reachable === false ? ` <span class="chip br">${t('未接到页面')}</span>` : ''} · ${rows.length}</td></tr>`
-        + rows.map((o) => `<tr><td class="flag">${opIssue(l.file, o.line) ? mk(opIssue(l.file, o.line)) : ''}</td><td><span class="pos">${o.tab ? esc(o.tab) + ' › ' : ''}${esc(o.label || t('（无文字，见源码）'))}</span><br><span class="mono dim">${esc(L(o, 'handler'))}</span></td><td><span class="chip k">${t(o.kind)}</span>${o.effects.map((e) => `<span class="chip">${esc(t(e))}</span>`).join('')}${(o.apis || []).map((p) => `<span class="chip api">${esc(p)}</span>`).join('')}</td><td>${srcLink({ file: l.file, line: o.line }, S)}</td></tr>`).join(''); } }
+        + rows.map((o) => `<tr data-op="${esc(l.file + '|' + o.line)}"><td class="flag">${opIssue(l.file, o.line) ? mk(opIssue(l.file, o.line)) : ''}</td><td><span class="pos">${o.tab ? esc(o.tab) + ' › ' : ''}${esc(o.label || t('（无文字，见源码）'))}</span><br><span class="mono dim">${esc(L(o, 'handler'))}</span></td><td><span class="chip k">${t(o.kind)}</span>${o.effects.map((e) => `<span class="chip">${esc(t(e))}</span>`).join('')}${(o.apis || []).map((p) => `<span class="chip api">${esc(p)}</span>`).join('')}</td><td>${srcLink({ file: l.file, line: o.line }, S)}</td></tr>`).join(''); } }
   const empties = st.q || st.only ? '' : S.groups.filter((g) => !g.layers.length && (!st.group || st.group === g.id)).map((g) => `<tr><td class="flag">${mk('todo')}</td><td class="pos">${esc(L(g, 'title'))}</td><td colspan="2" class="dim">${t('未实现——这一段没有任何代码。')}</td></tr>`).join('');
   return `<p class="lead">${t(st.sys === 'gp' ? '每一行 = 平台侧的一个命令 / 定时任务。' : '每一行 = 画面上的一个操作点（按钮 / 表单 / 输入 / 链接）。「做什么」是对处理函数的静态推断，不是运行时跟踪。')} ${t('显示')} ${shown} / ${S.stats.ops}。</p>` + (shown || empties ? `<table><tr><th></th><th>${t('位置 · 处理')}</th><th>${t('做什么')}</th><th>${t('源码')}</th></tr>${html}${empties}</table>` : `<div class="empty">${t('没有匹配的条目')}</div>`);
 }
@@ -190,12 +205,12 @@ function viewIssues() {
   setTimeout(() => document.querySelectorAll('.lvf button').forEach((b) => b.onclick = () => { st.lv = b.dataset.lv; st.only = false; render(); }));
   const order = (a, b) => LV_ORDER.indexOf(lvOf(a)) - LV_ORDER.indexOf(lvOf(b));
   const rows = base.filter((i) => (!want || lvOf(i) === want) && hit([i.where, i.where_ja || '', i.what, i.what_ja || '', i.source?.file || ''].join(' '))).sort(order);
-  return filt + `<p class="lead">${esc(t('只列「{s}」自己的问题：东西做了，但链路断在某一环；或这一段还没有。跨系统对不上的，见右上「三者之间的衔接」。', { s: L(S, 'short') }))}</p>` + (rows.length ? `<table><tr><th></th><th>${t('位置')}</th><th>${t('情况')}</th><th>${t('源码')}</th></tr>` + rows.map((i) => `<tr><td class="flag">${mk(lvOf(i))}</td><td><span class="pos">${esc(L(i, 'where'))}</span><br><span class="chip k">${t(KIND[i.kind] || i.kind)}</span>${staleChip(i)}</td><td>${esc(L(i, 'what'))}</td><td>${srcLink(i.source, S)}</td></tr>`).join('') + '</table>' : `<div class="empty">${t('这个分组没有已确认的问题')}</div>`);
+  return filt + `<p class="lead">${esc(t('只列「{s}」自己的问题：东西做了，但链路断在某一环；或这一段还没有。跨系统对不上的，见右上「三者之间的衔接」。', { s: L(S, 'short') }))}</p>` + (rows.length ? `<table><tr><th></th><th>${t('位置')}</th><th>${t('情况')}</th><th>${t('源码')}</th></tr>` + rows.map((i) => `<tr data-iss="${esc(S.id + ':' + S.issues.indexOf(i))}"><td class="flag">${mk(lvOf(i))}</td><td><span class="pos">${esc(L(i, 'where'))}</span><br><span class="chip k">${t(KIND[i.kind] || i.kind)}</span>${staleChip(i)}</td><td>${esc(L(i, 'what'))}</td><td>${srcLink(i.source, S)}</td></tr>`).join('') + '</table>' : `<div class="empty">${t('这个分组没有已确认的问题')}</div>`);
 }
 function viewVerify() { const { S } = ctx(); return `<p class="lead">${t('静态分析和只读检查确认不了的事项——需要后台权限、真实账户或另一台机器才能下结论。不写成「已完成」，也不写成「有问题」。')}</p><table><tr><th></th><th>${t('事项')}</th><th>${t('为什么现在确认不了')}</th><th>${t('谁能确认')}</th><th>${t('源码')}</th></tr>` + S.verify.filter((v) => hit([v.item, v.item_ja || '', v.why, v.who].join(' '))).map((v) => `<tr><td class="flag"><span class="q">?</span></td><td class="pos">${esc(L(v, 'item'))}${staleChip(v)}</td><td>${esc(L(v, 'why'))}</td><td class="dim">${esc(L(v, 'who'))}</td><td>${srcLink(v.source, S)}</td></tr>`).join('') + '</table>'; }
 function viewChanges() { const { S } = ctx(); return `<p class="lead">${esc(L(S, 'changesNote'))}。${t('改到评分 / 选角逻辑的：')}<b>${S.changes.filter((c) => c.scoring).length}</b> ${t('个')}。</p><table><tr><th>${t('版本')}</th><th>${t('日期')}</th><th>${t('内容')}</th><th>${t('涉及')}</th></tr>` + S.changes.filter((c) => hit(c.subject + (c.subject_ja || '') + c.hash)).map((c) => `<tr><td>${S.srcBase === 'github' ? `<a class="src" target="_blank" href="${A.repo}/commit/${c.hash}">${c.hash}</a>` : `<span class="srcp">${esc(c.hash)}</span>`}</td><td class="dim">${c.date}</td><td>${c.scoring ? `<span class="chip br">${t('评分')}</span>` : ''}${esc(L(c, 'subject'))}</td><td>${c.area.map((x) => `<span class="chip">${esc(t(x))}</span>`).join('')}<span class="chip k">${c.files} ${t('文件')}</span></td></tr>`).join('') + '</table>'; }
 function viewCron() { const { S } = ctx(); return `<div class="note">${esc(L(S.crons, 'note'))}</div>` + (S.crons.needed.length ? `<table><tr><th></th><th>${t(st.sys === 'gp' ? '定时任务' : '需要定时、但仓库里没有定时器的任务')}</th><th>${t('源码')}</th></tr>` + S.crons.needed.map((c) => `<tr><td class="flag"><span class="q">?</span></td><td>${esc(L(c, 'what'))}</td><td>${srcLink(c.source, S)}</td></tr>`).join('') + '</table>' : ''); }
-function viewOverview() { const { S } = ctx(); return `<p class="lead">${esc(L(S.diagram, 'lead'))} <a class="src" href="${dia(S.diagram.file)}" target="_blank">${t('单独打开 ↗')}</a></p><iframe src="${dia(S.diagram.file)}" title="overview"></iframe>`; }
+function viewOverview() { const { S } = ctx(); return `<p class="lead">${esc(L(S.diagram, 'lead'))} <a class="src" href="${dia(S.diagram.file)}" target="_blank">${t('单独打开 ↗')}</a></p><iframe id="ovframe" src="${dia(S.diagram.file)}" title="overview" onload="window.liveMark && liveMark()"></iframe>`; }
 function viewLinks() {
   const ST = { ok: ['okd', '✓', 'st-ok', '已接通'], bad: ['bang', '!', 'st-bad', '对不上'], gap: ['bang lv-todo', '○', 'st-gap', '还没有'] };
   return `<p class="lead">${esc(L(A.links, 'lead'))} <a class="src" href="${dia(A.links.diagram.file)}" target="_blank">${t('单独打开衔接图 ↗')}</a></p><table><tr><th></th><th>${t('从 → 到')}</th><th>${t('连接点')}</th><th>${t('状态与依据')}</th><th>${t('源码')}</th></tr>` + A.links.items.map((l) => { const s = ST[l.status]; return `<tr><td class="flag">${l.status === 'ok' ? `<span class="${s[0]}">${s[1]}</span>` : mk(l.level || (l.status === 'bad' ? 'bug' : 'todo'))}</td><td class="arrow">${esc(t(l.from))} → ${esc(t(l.to))}</td><td class="pos">${esc(L(l, 'what'))}</td><td><b class="${s[2]}">${t(s[3])}</b>　${esc(L(l, 'evidence'))}${staleChip(l)}</td><td>${srcLink(l.source)}</td></tr>`; }).join('') + `</table><div style="height:14px"></div><iframe src="${dia(A.links.diagram.file)}" title="links"></iframe>`;
@@ -204,10 +219,69 @@ function renderView() { $('#view').innerHTML = st.sys === 'links' ? viewLinks() 
 function render() {
   const wide = st.sys === 'links' || st.tab === 'overview';
   $('#main').style.gridTemplateColumns = wide ? '1fr' : '300px 1fr'; $('#side').style.display = wide ? 'none' : '';
-  renderTop(); renderHead(); if (!wide) renderSide(); renderView();
+  renderTop(); renderHead(); if (!wide) renderSide(); renderView(); if (window.liveMark) liveMark();
 }
+// ── 实时编辑（live.js 由本机常驻进程 live_watch.cjs 每 3 秒写一次；只在本机打开时启用，公开站点不加载）──
+const LIVE_PORT = 8795, LIVE_LOCAL = location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+const LIVE_SRV = location.protocol === 'file:' ? `http://127.0.0.1:${LIVE_PORT}` : '';
+const LIVE_CMD = 'nohup node ~/Library/Application\\ Support/panda-audit/live_watch.cjs >/dev/null 2>&1 &';
+const lt = (zh, ja) => (st.lang === 'ja' ? ja : zh);
+const LST = { new: ['新文件', '新規'], mod: ['修改', '変更'], add: ['新增', '追加'], del: ['删除', '削除'], ren: ['改名', '名前変更'] };
+const liveOpen = new Set(); let liveFp = '', liveBusy = false;
+const hm = (s) => { if (!s) return ''; const d = new Date(s), p = (x) => String(x).padStart(2, '0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
+const gTitle = (sys, id) => { if (id === 'api') return t('接口'); const S = A.systems.find((x) => x.id === sys); const g = S && S.groups.find((x) => x.id === id); return g ? t(L(g, 'title').trim()) : id; };
+const NODE_SYS = { overview: 'panda', internal: 'internal' };
+const nodeLabel = (key) => { const [d, id] = key.split(':'); return `${d === 'internal' ? '② ' : '① '}${id}`; };
+function liveRender() {
+  const el = $('#live'); if (!el) return; const Lv = window.PANDA_LIVE;
+  if (!LIVE_LOCAL) { el.classList.remove('show'); return; } el.classList.add('show');
+  const sw = (on, dis) => `<button class="lsw ${on ? 'on' : ''}" id="lsw" ${dis ? 'disabled' : ''}><i></i>${on ? lt('实时监视 开', 'リアルタイム監視 ON') : lt('实时监视 关', 'リアルタイム監視 OFF')}</button>`;
+  const how = `<span class="dim">${lt('在 VS Code 终端运行：', 'VS Code のターミナルで実行：')}<code class="mono">${esc(LIVE_CMD)}</code></span>`;
+  const fileHint = location.protocol === 'file:' ? ` <span class="dim">${lt('图表高亮需用', '図のハイライトは')} <a class="src" href="http://127.0.0.1:${LIVE_PORT}/">http://127.0.0.1:${LIVE_PORT}/</a> ${lt('打开', 'で開く')}</span>` : '';
+  if (!Lv) { el.innerHTML = `<div class="hd">${sw(false, true)}<span class="ldot off"></span><b>${lt('实时编辑：监视进程未运行', 'リアルタイム編集：監視プロセス未起動')}</b>${how}</div>`; liveFp = ''; return; }
+  const age = Math.round((Date.now() - new Date(Lv.at)) / 1000);
+  if (age >= 30) { el.innerHTML = `<div class="hd">${sw(false, true)}<span class="ldot off"></span><b>${lt(`实时编辑：监视已停（${Math.round(age / 60)} 分钟无更新，重启 Mac 后要重新启动）`, `リアルタイム編集：監視停止（${Math.round(age / 60)} 分更新なし。Mac 再起動後は再起動が必要）`)}</b>${how}</div>`; liveFp = ''; return; }
+  const fp = JSON.stringify({ ...Lv, at: 0 }) + st.lang;
+  if (fp === liveFp) { const a = $('#lage'); if (a) a.textContent = lt(`${age} 秒前`, `${age} 秒前`); return; } liveFp = fp;
+  if (Lv.enabled === false) { el.innerHTML = `<div class="hd">${sw(false)}<span class="ldot off"></span><b>${lt('实时编辑：已关闭', 'リアルタイム編集：OFF')}</b><span class="dim">${lt('不读工作副本、不高亮。点开关重新开启。', '作業コピーを読まず、ハイライトもしない。スイッチで再開。')}</span><span id="lswerr"></span>${fileHint}</div>`; liveBind(Lv); return; }
+  const ed = Lv.files.filter((f) => f.editing), rest = Lv.files.filter((f) => !f.editing), multi = Lv.repos.length > 1;
+  const repos = Lv.repos.map((r) => `<span class="chip k" title="${esc(r.repo)}">${esc(r.name)} · ${esc(r.branch || '')}@${esc(r.head || '?')}${r.error ? ' ⚠' : ''} · ${r.count || 0}</span>`).join('');
+  const hunkHtml = (f) => f.hunks.map((h) => `<div class="lhunk"><div class="hh"><a href="vscode://file${encodeURI(f.repo + '/' + f.path)}:${Math.max(h.start, 1)}">L${h.start}${h.len > 1 ? '–' + (h.start + h.len - 1) : ''}</a>${h.ctx ? ' · <span class="mono">' + esc(h.ctx) + '</span>' : ''}${h.groups && h.groups.length ? ' › ' + esc(t(h.groups[0])) : ''}${h.ops ? ` · ${h.ops} ${t('操作点')}` : ''}</div>${h.text ? `<div class="ldiff">${h.text.map((x) => `<span class="${x[0] === '+' ? 'a' : 'd'}">${esc(x)}</span>`).join('\n')}${h.more ? `\n<span class="dim">… ${lt('还有', 'ほか')} ${h.more} ${lt('行', '行')}</span>` : ''}</div>` : f.secret ? `<div class="dim">${lt('可能含密钥，内容不显示', '秘密情報の可能性があるため内容は表示しない')}</div>` : ''}</div>`).join('') + (f.hunkCount > f.hunks.length ? `<div class="dim">… ${f.hunkCount} ${lt('段', '箇所')}</div>` : '');
+  const row = (f) => { const key = f.repo + '|' + f.path;
+    return `<li>${f.editing ? `<span class="ledit lpulse">${lt('编辑中', '編集中')}</span>` : `<span class="dim">${lt('未提交', '未コミット')}</span>`} <b class="mono">${esc(f.path)}</b> <span class="chip">${LST[f.status] ? lt(...LST[f.status]) : esc(f.status)}</span>${multi ? `<span class="chip k">${esc(f.repo.split('/').pop())}</span>` : ''} <span class="st-ok">+${f.add}</span> <span class="st-bad">−${f.del}</span> `
+      + f.groups.map((g) => `<span class="lpill" data-lg="${esc(g.sys + ':' + g.id)}">${esc(gTitle(g.sys, g.id))}</span>`).join('') + f.nodes.map((n) => `<span class="lpill n" data-ln="${esc(n)}">◆ ${esc(nodeLabel(n))}</span>`).join('')
+      + (f.ops.length ? `<span class="chip k">${f.ops.length} ${t('操作点')}</span>` : '') + (f.issues.length ? `<span class="chip br">! ${f.issues.length}</span>` : '')
+      + ` <span class="dim">${hm(f.mtime)} ${lt('保存', '保存')}</span><details data-k="${esc(key)}" ${liveOpen.has(key) ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt('改动内容', '変更内容')}（${f.hunkCount} ${lt('段', '箇所')}）</summary>${hunkHtml(f)}</details></li>`; };
+  el.innerHTML = `<div class="hd">${sw(true)}<span class="ldot lpulse"></span><b>${lt('实时编辑', 'リアルタイム編集')}</b><span class="dim" id="lage">${age} ${lt('秒前', '秒前')}</span>${ed.length ? `<span class="ledit">${lt(`正在编辑 ${ed.length} 个文件`, `${ed.length} ファイル編集中`)}</span>` : `<span class="dim">${lt('2 分钟内没有保存', '2 分以内の保存なし')}</span>`}<span class="dim">${lt(`未提交 ${Lv.files.length}`, `未コミット ${Lv.files.length}`)}</span>${repos}<span id="lswerr"></span>${fileHint}</div>`
+    + `<div class="dim" style="font-size:11.5px;margin-top:3px">${lt(`黄色＝正在动的地方（侧栏分组 / 操作行 / 总览图方块）。行号按同步版本 ${esc(Lv.index)} 对照，工作副本分支不同时可能有偏移。`, `黄色＝今触っている場所（サイドバー / 操作行 / 全体図）。行番号は同期版 ${esc(Lv.index)} 基準。作業ブランチが違うとずれることがある。`)}</div>`
+    + (Lv.files.length ? `<ul>${ed.map(row).join('')}${rest.length ? (ed.length ? `<li style="list-style:none"><details data-k="__rest" ${liveOpen.has('__rest') ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt(`其余未提交 ${rest.length} 个`, `その他の未コミット ${rest.length} 件`)}</summary><ul>${rest.map(row).join('')}</ul></details></li>` : rest.map(row).join('')) : ''}</ul>` : '');
+  el.querySelectorAll('details[data-k]').forEach((d) => d.addEventListener('toggle', () => { d.open ? liveOpen.add(d.dataset.k) : liveOpen.delete(d.dataset.k); }));
+  el.querySelectorAll('[data-lg]').forEach((b) => b.onclick = () => { const [sys, g] = b.dataset.lg.split(':'); st.sys = sys; st.group = g; st.tab = g === 'api' ? 'api' : 'ui'; st.q = ''; st.only = false; render(); });
+  el.querySelectorAll('[data-ln]').forEach((b) => b.onclick = () => { st.sys = NODE_SYS[b.dataset.ln.split(':')[0]] || 'panda'; st.tab = 'overview'; render(); });
+  liveBind(Lv);
+}
+function liveBind(Lv) { const b = $('#lsw'); if (!b) return; b.onclick = async () => { b.disabled = true; const want = Lv.enabled === false ? 'on' : 'off';
+  try { const r = await fetch(`${LIVE_SRV}/${want}`, { method: 'POST' }); if (!r.ok) throw new Error(r.status); liveFp = ''; setTimeout(livePoll, 400); }
+  catch (e) { b.disabled = false; const x = $('#lswerr'); if (x) x.innerHTML = `<span style="color:var(--warn)">${lt(`连不上监视进程（127.0.0.1:${LIVE_PORT}）`, `監視プロセスに接続できない（127.0.0.1:${LIVE_PORT}）`)}</span>`; } }; }
+function liveMark() {
+  const Lv = window.PANDA_LIVE, on = !!(LIVE_LOCAL && Lv && Lv.enabled !== false && Date.now() - new Date(Lv.at) < 30e3);
+  const E = on ? Lv.editing : { groups: [], ops: [], issues: [], nodes: [] }, C = on ? Lv.changed : E;
+  document.querySelectorAll('.lvb').forEach((x) => x.remove());
+  if (on) { document.querySelectorAll('#side .g[data-g]').forEach((g) => { const k = st.sys + ':' + g.dataset.g; if (!g.dataset.g) return; const e = E.groups.includes(k), c = C.groups.includes(k); if (e || c) g.firstElementChild.insertAdjacentHTML('beforeend', `<span class="lvb ${e ? 'ed lpulse' : ''}">${e ? lt('编辑中', '編集中') : lt('有改动', '変更あり')}</span>`); });
+    document.querySelectorAll('.sysbtn[data-sys]').forEach((b) => { const s = b.dataset.sys + ':'; const e = E.groups.some((k) => k.startsWith(s)), c = C.groups.some((k) => k.startsWith(s)); if (e || c) b.querySelector('b').insertAdjacentHTML('beforeend', `<span class="lvb ${e ? 'ed lpulse' : ''}">${e ? lt('编辑中', '編集中') : lt('有改动', '変更あり')}</span>`); }); }
+  document.querySelectorAll('tr[data-op]').forEach((r) => { const k = r.dataset.op; r.classList.toggle('led', E.ops.includes(k)); r.classList.toggle('lch', !E.ops.includes(k) && C.ops.includes(k)); });
+  document.querySelectorAll('tr[data-iss]').forEach((r) => { const k = r.dataset.iss; r.classList.toggle('led', E.issues.includes(k)); r.classList.toggle('lch', !E.issues.includes(k) && C.issues.includes(k)); });
+  const f = document.getElementById('ovframe'); let doc = null; try { doc = f && f.contentDocument; } catch (e) { /* file:// 跨源 */ } if (!doc || !doc.head) return;
+  if (!doc.getElementById('pf-live-css')) { const s = doc.createElement('style'); s.id = 'pf-live-css'; s.textContent = 'g.pf-ed>rect:first-of-type{stroke:#f59e0b!important;stroke-width:3.5px!important;animation:pfp 1.1s ease-in-out infinite}g.pf-ch>rect:first-of-type{stroke:#f59e0b!important;stroke-width:2px!important;stroke-dasharray:6 4}@keyframes pfp{50%{stroke-opacity:.25}}'; doc.head.appendChild(s); }
+  const S = SYS(), dk = S && S.diagram ? S.diagram.file.replace(/\.html$/, '') : '';
+  doc.querySelectorAll('g[data-node-id]').forEach((g) => { const k = dk + ':' + g.dataset.nodeId; g.classList.toggle('pf-ed', E.nodes.includes(k)); g.classList.toggle('pf-ch', !E.nodes.includes(k) && C.nodes.includes(k)); });
+}
+function livePoll() { if (!LIVE_LOCAL || liveBusy) return; liveBusy = true; const s = document.createElement('script'); s.src = `${LIVE_SRV || '.'}/live.js?t=${Date.now()}`.replace(/^\.\//, '');
+  s.onload = s.onerror = () => { liveBusy = false; s.remove(); liveRender(); liveMark(); }; document.head.appendChild(s); }
+{ const _rv = renderView; renderView = function () { _rv(); liveMark(); }; }
+if (LIVE_LOCAL) setInterval(livePoll, 3000);
 try { if (!localStorage.getItem('archify-theme')) localStorage.setItem('archify-theme', 'dark'); } catch (e) { /* file:// 下可能不可用 */ }
-render();
+render(); if (LIVE_LOCAL) { liveRender(); livePoll(); }
 </script>
 </body>
 </html>

@@ -47,4 +47,4 @@ rm -rf "$T"
 write_status changed "$DIAG"
 git -C "$SITE" add -A && git -C "$SITE" commit -q -m "sync: main@${MAIN:0:7} internal-tools@${INT:0:7} ($DIAG)" && git -C "$SITE" push -q origin main && echo "$(now) pushed ($DIAG)" || echo "$(now) nothing to push / push failed"
 echo "$KEY" > "$STATE"
-rsync -a --delete --exclude .git --exclude evidence "$SITE/" "$DESK/" 2>/dev/null || true
+rsync -a --delete --exclude .git --exclude evidence --exclude live.js "$SITE/" "$DESK/" 2>/dev/null || true
