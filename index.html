@@ -51,6 +51,7 @@
   iframe { width: 100%; height: calc(100vh - 250px); min-height: 520px; border: 1px solid var(--line); border-radius: 14px; background: #0b0f17; }
   .empty { color: var(--sub); padding: 30px; text-align: center; } .note { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; color: #cdd6e3; margin-bottom: 12px; }
   .arrow { color: var(--sub); white-space: nowrap; } .st-ok { color: var(--ok); } .st-bad { color: var(--bad); } .st-gap { color: #c4b5fd; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr !important; } aside { display: none !important; } .sysbtn { min-width: 0; flex: 1 1 46%; } .lang { margin-left: 0; } h1 { white-space: normal; font-size: 18px; } header, section { padding-inline: 16px; } iframe { height: 72vh; min-height: 420px; } }
   /* 实时编辑（只在本机 http://127.0.0.1:8795/ 显示；公开站点不加载） */
   #live { display: none; margin-top: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 12.5px; max-height: 42vh; overflow: auto; }
   #live.show { display: block; } #live .hd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } #live ul { margin: 6px 0 0; padding-left: 18px; } #live li { margin: 4px 0; }
@@ -222,8 +223,10 @@ function render() {
   renderTop(); renderHead(); if (!wide) renderSide(); renderView(); if (window.liveMark) liveMark();
 }
 // ── 实时编辑（live.js 由本机常驻进程 live_watch.cjs 每 3 秒写一次；只在本机打开时启用，公开站点不加载）──
-const LIVE_PORT = 8795, LIVE_LOCAL = location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
-const LIVE_SRV = location.protocol === 'file:' ? `http://127.0.0.1:${LIVE_PORT}` : '';
+const LIVE_ART = window.PANDA_LIVE_MODE === 'artifact'; // claude.ai Artifact 版：实时数据由 Claude 会话定时写入 Artifact 数据库 live/current
+let LIVE_CTRL = true, LIVE_CAN = null, LIVE_DB = null; // Artifact 版开关：数据库 live/control.enabled；LIVE_CAN=false 的人只看状态
+const LIVE_PORT = 8795, LIVE_LOCAL = LIVE_ART || location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+const LIVE_SRV = !LIVE_ART && location.protocol === 'file:' ? `http://127.0.0.1:${LIVE_PORT}` : '';
 const LIVE_CMD = 'nohup node ~/Library/Application\\ Support/panda-audit/live_watch.cjs >/dev/null 2>&1 &';
 const lt = (zh, ja) => (st.lang === 'ja' ? ja : zh);
 const LST = { new: ['新文件', '新規'], mod: ['修改', '変更'], add: ['新增', '追加'], del: ['删除', '削除'], ren: ['改名', '名前変更'] };
@@ -235,24 +238,29 @@ const nodeLabel = (key) => { const [d, id] = key.split(':'); return `${d === 'in
 function liveRender() {
   const el = $('#live'); if (!el) return; const Lv = window.PANDA_LIVE;
   if (!LIVE_LOCAL) { el.classList.remove('show'); return; } el.classList.add('show');
-  const sw = (on, dis) => `<button class="lsw ${on ? 'on' : ''}" id="lsw" ${dis ? 'disabled' : ''}><i></i>${on ? lt('实时监视 开', 'リアルタイム監視 ON') : lt('实时监视 关', 'リアルタイム監視 OFF')}</button>`;
-  const how = `<span class="dim">${lt('在 VS Code 终端运行：', 'VS Code のターミナルで実行：')}<code class="mono">${esc(LIVE_CMD)}</code></span>`;
-  const fileHint = location.protocol === 'file:' ? ` <span class="dim">${lt('图表高亮需用', '図のハイライトは')} <a class="src" href="http://127.0.0.1:${LIVE_PORT}/">http://127.0.0.1:${LIVE_PORT}/</a> ${lt('打开', 'で開く')}</span>` : '';
-  if (!Lv) { el.innerHTML = `<div class="hd">${sw(false, true)}<span class="ldot off"></span><b>${lt('实时编辑：监视进程未运行', 'リアルタイム編集：監視プロセス未起動')}</b>${how}</div>`; liveFp = ''; return; }
-  const age = Math.round((Date.now() - new Date(Lv.at)) / 1000);
-  if (age >= 30) { el.innerHTML = `<div class="hd">${sw(false, true)}<span class="ldot off"></span><b>${lt(`实时编辑：监视已停（${Math.round(age / 60)} 分钟无更新，重启 Mac 后要重新启动）`, `リアルタイム編集：監視停止（${Math.round(age / 60)} 分更新なし。Mac 再起動後は再起動が必要）`)}</b>${how}</div>`; liveFp = ''; return; }
+  let sw = (on, dis) => `<button class="lsw ${on ? 'on' : ''}" id="lsw" ${dis ? 'disabled' : ''}><i></i>${on ? lt('实时监视 开', 'リアルタイム監視 ON') : lt('实时监视 关', 'リアルタイム監視 OFF')}</button>`;
+  const how = LIVE_ART ? `<span class="dim">${lt('实时数据由维护者电脑上的 Claude 会话定时推送；推送停了请联系维护者。', '保守担当 PC の Claude セッションが定期的に送信。止まっていたら保守担当へ。')}</span>` : `<span class="dim">${lt('在 VS Code 终端运行：', 'VS Code のターミナルで実行：')}<code class="mono">${esc(LIVE_CMD)}</code></span>`;
+  if (LIVE_ART && LIVE_CAN === false) sw = (on) => `<span class="chip k">${on ? lt('实时共享：开（维护者可切换）', 'リアルタイム共有：ON（保守担当が切替）') : lt('实时共享：关', 'リアルタイム共有：OFF')}</span>`;
+  else if (LIVE_ART) sw = (on) => `<button class="lsw ${on ? 'on' : ''}" id="lsw"><i></i>${on ? lt('实时共享 开', 'リアルタイム共有 ON') : lt('实时共享 关', 'リアルタイム共有 OFF')}</button>`;
+  if (LIVE_ART && !LIVE_CTRL) { el.innerHTML = `<div class="hd">${sw(false)}<span class="ldot off"></span><b>${lt('实时编辑：已关闭共享', 'リアルタイム編集：共有 OFF')}</b><span class="dim">${lt('不推送也不显示改动内容。', '変更内容を送信も表示もしない。')}</span><span id="lswerr"></span></div>`; liveFp = ''; liveBind(Lv || {}); return; }
+  const fileHint = !LIVE_ART && location.protocol === 'file:' ? ` <span class="dim">${lt('图表高亮需用', '図のハイライトは')} <a class="src" href="http://127.0.0.1:${LIVE_PORT}/">http://127.0.0.1:${LIVE_PORT}/</a> ${lt('打开', 'で開く')}</span>` : '';
+  if (!Lv) { el.innerHTML = `<div class="hd">${sw(false, true)}<span class="ldot off"></span><b>${LIVE_ART ? lt('实时编辑：还没有推送数据', 'リアルタイム編集：送信データなし') : lt('实时编辑：监视进程未运行', 'リアルタイム編集：監視プロセス未起動')}</b>${how}</div>`; liveFp = ''; return; }
+  const age = Math.round((Date.now() - new Date(LIVE_ART ? Lv.pushedAt || Lv.at : Lv.at)) / 1000), maxAge = ((Lv.intervalMin || 5) * 2 + 3) * 60;
+  if (LIVE_ART && age >= maxAge) { el.innerHTML = `<div class="hd">${sw(false)}<span class="ldot off"></span><b>${lt(`实时编辑：推送已停（最后推送 ${Math.round(age / 60)} 分钟前）`, `リアルタイム編集：送信停止（最終送信 ${Math.round(age / 60)} 分前）`)}</b>${how}</div>`; liveFp = ''; return; }
+  if (!LIVE_ART && age >= 30) { el.innerHTML = `<div class="hd">${sw(false, true)}<span class="ldot off"></span><b>${lt(`实时编辑：监视已停（${Math.round(age / 60)} 分钟无更新，重启 Mac 后要重新启动）`, `リアルタイム編集：監視停止（${Math.round(age / 60)} 分更新なし。Mac 再起動後は再起動が必要）`)}</b>${how}</div>`; liveFp = ''; return; }
   const fp = JSON.stringify({ ...Lv, at: 0 }) + st.lang;
-  if (fp === liveFp) { const a = $('#lage'); if (a) a.textContent = lt(`${age} 秒前`, `${age} 秒前`); return; } liveFp = fp;
+  const ageTxt = LIVE_ART ? lt(`${Math.round(age / 60)} 分钟前推送（每 ${Lv.intervalMin || 5} 分钟）`, `${Math.round(age / 60)} 分前に送信（${Lv.intervalMin || 5} 分ごと）`) : lt(`${age} 秒前`, `${age} 秒前`);
+  if (fp === liveFp) { const a = $('#lage'); if (a) a.textContent = ageTxt; return; } liveFp = fp;
   if (Lv.enabled === false) { el.innerHTML = `<div class="hd">${sw(false)}<span class="ldot off"></span><b>${lt('实时编辑：已关闭', 'リアルタイム編集：OFF')}</b><span class="dim">${lt('不读工作副本、不高亮。点开关重新开启。', '作業コピーを読まず、ハイライトもしない。スイッチで再開。')}</span><span id="lswerr"></span>${fileHint}</div>`; liveBind(Lv); return; }
   const ed = Lv.files.filter((f) => f.editing), rest = Lv.files.filter((f) => !f.editing), multi = Lv.repos.length > 1;
   const repos = Lv.repos.map((r) => `<span class="chip k" title="${esc(r.repo)}">${esc(r.name)} · ${esc(r.branch || '')}@${esc(r.head || '?')}${r.error ? ' ⚠' : ''} · ${r.count || 0}</span>`).join('');
-  const hunkHtml = (f) => f.hunks.map((h) => `<div class="lhunk"><div class="hh"><a href="vscode://file${encodeURI(f.repo + '/' + f.path)}:${Math.max(h.start, 1)}">L${h.start}${h.len > 1 ? '–' + (h.start + h.len - 1) : ''}</a>${h.ctx ? ' · <span class="mono">' + esc(h.ctx) + '</span>' : ''}${h.groups && h.groups.length ? ' › ' + esc(t(h.groups[0])) : ''}${h.ops ? ` · ${h.ops} ${t('操作点')}` : ''}</div>${h.text ? `<div class="ldiff">${h.text.map((x) => `<span class="${x[0] === '+' ? 'a' : 'd'}">${esc(x)}</span>`).join('\n')}${h.more ? `\n<span class="dim">… ${lt('还有', 'ほか')} ${h.more} ${lt('行', '行')}</span>` : ''}</div>` : f.secret ? `<div class="dim">${lt('可能含密钥，内容不显示', '秘密情報の可能性があるため内容は表示しない')}</div>` : ''}</div>`).join('') + (f.hunkCount > f.hunks.length ? `<div class="dim">… ${f.hunkCount} ${lt('段', '箇所')}</div>` : '');
+  const hunkHtml = (f) => f.hunks.map((h) => `<div class="lhunk"><div class="hh">${LIVE_ART ? `<b>L${h.start}${h.len > 1 ? '–' + (h.start + h.len - 1) : ''}</b>` : `<a href="vscode://file${encodeURI(f.repo + '/' + f.path)}:${Math.max(h.start, 1)}">L${h.start}${h.len > 1 ? '–' + (h.start + h.len - 1) : ''}</a>`}${h.ctx ? ' · <span class="mono">' + esc(h.ctx) + '</span>' : ''}${h.groups && h.groups.length ? ' › ' + esc(t(h.groups[0])) : ''}${h.ops ? ` · ${h.ops} ${t('操作点')}` : ''}</div>${h.text ? `<div class="ldiff">${h.text.map((x) => `<span class="${x[0] === '+' ? 'a' : 'd'}">${esc(x)}</span>`).join('\n')}${h.more ? `\n<span class="dim">… ${lt('还有', 'ほか')} ${h.more} ${lt('行', '行')}</span>` : ''}</div>` : f.secret ? `<div class="dim">${lt('可能含密钥，内容不显示', '秘密情報の可能性があるため内容は表示しない')}</div>` : ''}</div>`).join('') + (f.hunkCount > f.hunks.length ? `<div class="dim">… ${f.hunkCount} ${lt('段', '箇所')}</div>` : '');
   const row = (f) => { const key = f.repo + '|' + f.path;
     return `<li>${f.editing ? `<span class="ledit lpulse">${lt('编辑中', '編集中')}</span>` : `<span class="dim">${lt('未提交', '未コミット')}</span>`} <b class="mono">${esc(f.path)}</b> <span class="chip">${LST[f.status] ? lt(...LST[f.status]) : esc(f.status)}</span>${multi ? `<span class="chip k">${esc(f.repo.split('/').pop())}</span>` : ''} <span class="st-ok">+${f.add}</span> <span class="st-bad">−${f.del}</span> `
       + f.groups.map((g) => `<span class="lpill" data-lg="${esc(g.sys + ':' + g.id)}">${esc(gTitle(g.sys, g.id))}</span>`).join('') + f.nodes.map((n) => `<span class="lpill n" data-ln="${esc(n)}">◆ ${esc(nodeLabel(n))}</span>`).join('')
       + (f.ops.length ? `<span class="chip k">${f.ops.length} ${t('操作点')}</span>` : '') + (f.issues.length ? `<span class="chip br">! ${f.issues.length}</span>` : '')
       + ` <span class="dim">${hm(f.mtime)} ${lt('保存', '保存')}</span><details data-k="${esc(key)}" ${liveOpen.has(key) ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt('改动内容', '変更内容')}（${f.hunkCount} ${lt('段', '箇所')}）</summary>${hunkHtml(f)}</details></li>`; };
-  el.innerHTML = `<div class="hd">${sw(true)}<span class="ldot lpulse"></span><b>${lt('实时编辑', 'リアルタイム編集')}</b><span class="dim" id="lage">${age} ${lt('秒前', '秒前')}</span>${ed.length ? `<span class="ledit">${lt(`正在编辑 ${ed.length} 个文件`, `${ed.length} ファイル編集中`)}</span>` : `<span class="dim">${lt('2 分钟内没有保存', '2 分以内の保存なし')}</span>`}<span class="dim">${lt(`未提交 ${Lv.files.length}`, `未コミット ${Lv.files.length}`)}</span>${repos}<span id="lswerr"></span>${fileHint}</div>`
+  el.innerHTML = `<div class="hd">${sw(true)}<span class="ldot lpulse"></span><b>${lt('实时编辑', 'リアルタイム編集')}</b><span class="dim" id="lage">${esc(ageTxt)}</span>${ed.length ? `<span class="ledit">${lt(`正在编辑 ${ed.length} 个文件`, `${ed.length} ファイル編集中`)}</span>` : `<span class="dim">${lt(`${Lv.editingMin || 2} 分钟内没有保存`, `${Lv.editingMin || 2} 分以内の保存なし`)}</span>`}<span class="dim">${lt(`未提交 ${Lv.files.length}`, `未コミット ${Lv.files.length}`)}</span>${repos}<span id="lswerr"></span>${fileHint}</div>`
     + `<div class="dim" style="font-size:11.5px;margin-top:3px">${lt(`黄色＝正在动的地方（侧栏分组 / 操作行 / 总览图方块）。行号按同步版本 ${esc(Lv.index)} 对照，工作副本分支不同时可能有偏移。`, `黄色＝今触っている場所（サイドバー / 操作行 / 全体図）。行番号は同期版 ${esc(Lv.index)} 基準。作業ブランチが違うとずれることがある。`)}</div>`
     + (Lv.files.length ? `<ul>${ed.map(row).join('')}${rest.length ? (ed.length ? `<li style="list-style:none"><details data-k="__rest" ${liveOpen.has('__rest') ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt(`其余未提交 ${rest.length} 个`, `その他の未コミット ${rest.length} 件`)}</summary><ul>${rest.map(row).join('')}</ul></details></li>` : rest.map(row).join('')) : ''}</ul>` : '');
   el.querySelectorAll('details[data-k]').forEach((d) => d.addEventListener('toggle', () => { d.open ? liveOpen.add(d.dataset.k) : liveOpen.delete(d.dataset.k); }));
@@ -260,11 +268,13 @@ function liveRender() {
   el.querySelectorAll('[data-ln]').forEach((b) => b.onclick = () => { st.sys = NODE_SYS[b.dataset.ln.split(':')[0]] || 'panda'; st.tab = 'overview'; render(); });
   liveBind(Lv);
 }
-function liveBind(Lv) { const b = $('#lsw'); if (!b) return; b.onclick = async () => { b.disabled = true; const want = Lv.enabled === false ? 'on' : 'off';
+function liveBind(Lv) { const b = $('#lsw'); if (!b) return; b.onclick = async () => { b.disabled = true; const want = LIVE_ART ? (LIVE_CTRL ? 'off' : 'on') : Lv.enabled === false ? 'on' : 'off';
+  if (LIVE_ART) { try { await LIVE_DB.doc('live/control').set({ enabled: want === 'on', changedAt: new Date().toISOString() }); }
+    catch (e) { b.disabled = false; const x = $('#lswerr'); if (x) x.innerHTML = `<span style="color:var(--warn)">${lt('没有切换权限（需要 Editor 以上）', '切替権限がない（Editor 以上が必要）')}</span>`; } return; }
   try { const r = await fetch(`${LIVE_SRV}/${want}`, { method: 'POST' }); if (!r.ok) throw new Error(r.status); liveFp = ''; setTimeout(livePoll, 400); }
   catch (e) { b.disabled = false; const x = $('#lswerr'); if (x) x.innerHTML = `<span style="color:var(--warn)">${lt(`连不上监视进程（127.0.0.1:${LIVE_PORT}）`, `監視プロセスに接続できない（127.0.0.1:${LIVE_PORT}）`)}</span>`; } }; }
 function liveMark() {
-  const Lv = window.PANDA_LIVE, on = !!(LIVE_LOCAL && Lv && Lv.enabled !== false && Date.now() - new Date(Lv.at) < 30e3);
+  const Lv = window.PANDA_LIVE, on = !!(LIVE_LOCAL && Lv && Lv.enabled !== false && !(LIVE_ART && !LIVE_CTRL) && (LIVE_ART ? Date.now() - new Date(Lv.pushedAt || Lv.at) < ((Lv.intervalMin || 5) * 2 + 3) * 60e3 : Date.now() - new Date(Lv.at) < 30e3));
   const E = on ? Lv.editing : { groups: [], ops: [], issues: [], nodes: [] }, C = on ? Lv.changed : E;
   document.querySelectorAll('.lvb').forEach((x) => x.remove());
   if (on) { document.querySelectorAll('#side .g[data-g]').forEach((g) => { const k = st.sys + ':' + g.dataset.g; if (!g.dataset.g) return; const e = E.groups.includes(k), c = C.groups.includes(k); if (e || c) g.firstElementChild.insertAdjacentHTML('beforeend', `<span class="lvb ${e ? 'ed lpulse' : ''}">${e ? lt('编辑中', '編集中') : lt('有改动', '変更あり')}</span>`); });
@@ -279,9 +289,19 @@ function liveMark() {
 function livePoll() { if (!LIVE_LOCAL || liveBusy) return; liveBusy = true; const s = document.createElement('script'); s.src = `${LIVE_SRV || '.'}/live.js?t=${Date.now()}`.replace(/^\.\//, '');
   s.onload = s.onerror = () => { liveBusy = false; s.remove(); liveRender(); liveMark(); }; document.head.appendChild(s); }
 { const _rv = renderView; renderView = function () { _rv(); liveMark(); }; }
-if (LIVE_LOCAL) setInterval(livePoll, 3000);
+if (LIVE_LOCAL && !LIVE_ART) setInterval(livePoll, 3000);
+if (LIVE_ART) (async () => { // 订阅一次：live/current = { live, status }
+  const db = window.claude && window.claude.use ? await window.claude.use('db') : null; LIVE_DB = db;
+  const u = window.claude && window.claude.use ? await window.claude.use('user') : null;
+  if (u) { try { LIVE_CAN = await u.can('data.write'); } catch (e) { LIVE_CAN = null; } } else LIVE_CAN = false;
+  if (!db) { const el = $('#live'); if (el) el.innerHTML = `<div class="hd"><span class="ldot off"></span><b>${lt('实时编辑：此视图读不到数据库（需登录 claude.ai 打开）', 'リアルタイム編集：このビューではデータベースを読めない（claude.ai にログインして開く）')}</b></div>`; return; }
+  db.doc('live/control').onSnapshot((snap) => { const d = snap.exists ? snap.data() : null; LIVE_CTRL = !(d && d.enabled === false); liveFp = ''; liveRender(); liveMark(); }, () => {});
+  db.doc('live/current').onSnapshot((snap) => { const d = snap.exists ? snap.data() : null; window.PANDA_LIVE = d && d.live ? d.live : null; if (d && d.status) { window.AUDIT_STATUS = d.status; renderLegend(); } liveFp = ''; liveRender(); liveMark(); },
+    () => { const el = $('#live'); if (el) el.insertAdjacentHTML('beforeend', `<div class="dim">${lt('实时订阅已断开，请刷新页面', 'リアルタイム購読が切れた。再読み込みしてください')}</div>`); });
+})();
+if (LIVE_ART) setInterval(() => { liveRender(); liveMark(); }, 60e3); // 刷新「N 分钟前」与过期判断
 try { if (!localStorage.getItem('archify-theme')) localStorage.setItem('archify-theme', 'dark'); } catch (e) { /* file:// 下可能不可用 */ }
-render(); if (LIVE_LOCAL) { liveRender(); livePoll(); }
+render(); if (LIVE_LOCAL) { liveRender(); if (!LIVE_ART) livePoll(); }
 </script>
 </body>
 </html>
