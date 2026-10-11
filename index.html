@@ -8,8 +8,8 @@
 <style>
   :root { --bg:#0b0f17; --panel:#111827; --panel2:#0f1623; --line:#1f2a3a; --text:#e6edf6; --sub:#9aa7b8; --mute:#6b7789; --ok:#34d399; --bad:#f87171; --warn:#fbbf24; --chip:#16202e; --link:#93c5fd; --acc:#7dd3fc; }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.55 -apple-system, "Hiragino Sans", "PingFang SC", "Noto Sans JP", system-ui, sans-serif; }
-  body { display: flex; flex-direction: column; }
+  html { height: 100%; } html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.55 -apple-system, "Hiragino Sans", "PingFang SC", "Noto Sans JP", system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; min-height: 100%; } /* 页头变高（实时面板展开）时整页可滚，列表区至少保留 60vh */
   header { padding: 12px 20px 10px; border-bottom: 1px solid var(--line); flex: none; }
   .top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   h1 { font-size: 20px; margin: 0; letter-spacing: .02em; white-space: nowrap; }
@@ -32,7 +32,7 @@
   .lv-ready { background: #38bdf8; color: #04202e; font-size: 10px; } .lv-todo { background: transparent; color: #cbd5e1; border: 2px solid #64748b; font-size: 0; } .lv-note { background: #a78bfa; color: #1e1036; font-size: 11px; border-radius: 4px; transform: rotate(45deg) scale(.82); } .lv-note > i { transform: rotate(-45deg); font-style: normal; }
   .chip.stale { color: #fde68a; border-color: #854d0e; background: #2a1d05; } .lvf { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; } .lvf button { background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; cursor: pointer; font-size: 13px; display: flex; gap: 6px; align-items: center; } .lvf button.on { background: #e5e7eb; color: #0b0f17; font-weight: 700; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--sub); margin-top: 8px; } .legend span.it { display: flex; gap: 6px; align-items: center; } .warnline { color: var(--warn); } .q { background: var(--warn); color: #2a1a00; } .okd { background: var(--ok); color: #03281b; }
-  main { display: grid; grid-template-columns: 300px 1fr; flex: 1; min-height: 0; }
+  main { display: grid; grid-template-columns: 300px 1fr; grid-template-rows: minmax(0, 1fr); flex: 1 0 60vh; min-height: 60vh; height: 0; }
   aside { border-right: 1px solid var(--line); overflow: auto; padding: 12px 8px 40px; }
   aside .cap { color: var(--mute); font-size: 12px; padding: 4px 8px 8px; }
   .g { display: flex; justify-content: space-between; gap: 8px; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
@@ -53,7 +53,7 @@
   .arrow { color: var(--sub); white-space: nowrap; } .st-ok { color: var(--ok); } .st-bad { color: var(--bad); } .st-gap { color: #c4b5fd; }
   @media (max-width: 820px) { main { grid-template-columns: 1fr !important; } aside { display: none !important; } .sysbtn { min-width: 0; flex: 1 1 46%; } .lang { margin-left: 0; } h1 { white-space: normal; font-size: 18px; } header, section { padding-inline: 16px; } iframe { height: 72vh; min-height: 420px; } }
   /* 实时编辑（只在本机 http://127.0.0.1:8795/ 显示；公开站点不加载） */
-  #live { display: none; margin-top: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 12.5px; max-height: 42vh; overflow: auto; }
+  #live { display: none; margin-top: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 12.5px; max-height: 30vh; overflow: auto; }
   #live.show { display: block; } #live .hd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } #live ul { margin: 6px 0 0; padding-left: 18px; } #live li { margin: 4px 0; }
   .ldot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); display: inline-block; } .ldot.off { background: var(--mute); }
   .ledit { color: #f59e0b; font-weight: 700; } .lpulse { animation: lpl 1.2s ease-in-out infinite; } @keyframes lpl { 50% { opacity: .35; } }
@@ -262,7 +262,7 @@ function liveRender() {
       + ` <span class="dim">${hm(f.mtime)} ${lt('保存', '保存')}</span><details data-k="${esc(key)}" ${liveOpen.has(key) ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt('改动内容', '変更内容')}（${f.hunkCount} ${lt('段', '箇所')}）</summary>${hunkHtml(f)}</details></li>`; };
   el.innerHTML = `<div class="hd">${sw(true)}<span class="ldot lpulse"></span><b>${lt('实时编辑', 'リアルタイム編集')}</b><span class="dim" id="lage">${esc(ageTxt)}</span>${ed.length ? `<span class="ledit">${lt(`正在编辑 ${ed.length} 个文件`, `${ed.length} ファイル編集中`)}</span>` : `<span class="dim">${lt(`${Lv.editingMin || 2} 分钟内没有保存`, `${Lv.editingMin || 2} 分以内の保存なし`)}</span>`}<span class="dim">${lt(`未提交 ${Lv.files.length}`, `未コミット ${Lv.files.length}`)}</span>${repos}<span id="lswerr"></span>${fileHint}</div>`
     + `<div class="dim" style="font-size:11.5px;margin-top:3px">${lt(`黄色＝正在动的地方（侧栏分组 / 操作行 / 总览图方块）。行号按同步版本 ${esc(Lv.index)} 对照，工作副本分支不同时可能有偏移。`, `黄色＝今触っている場所（サイドバー / 操作行 / 全体図）。行番号は同期版 ${esc(Lv.index)} 基準。作業ブランチが違うとずれることがある。`)}</div>`
-    + (Lv.files.length ? `<ul>${ed.map(row).join('')}${rest.length ? (ed.length ? `<li style="list-style:none"><details data-k="__rest" ${liveOpen.has('__rest') ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt(`其余未提交 ${rest.length} 个`, `その他の未コミット ${rest.length} 件`)}</summary><ul>${rest.map(row).join('')}</ul></details></li>` : rest.map(row).join('')) : ''}</ul>` : '');
+    + (Lv.files.length ? `<ul>${ed.map(row).join('')}${rest.length ? (ed.length || rest.length > 2 ? `<li style="list-style:none"><details data-k="__rest" ${liveOpen.has('__rest') ? 'open' : ''}><summary class="dim" style="cursor:pointer">${lt(`其余未提交 ${rest.length} 个`, `その他の未コミット ${rest.length} 件`)}</summary><ul>${rest.map(row).join('')}</ul></details></li>` : rest.map(row).join('')) : ''}</ul>` : '');
   el.querySelectorAll('details[data-k]').forEach((d) => d.addEventListener('toggle', () => { d.open ? liveOpen.add(d.dataset.k) : liveOpen.delete(d.dataset.k); }));
   el.querySelectorAll('[data-lg]').forEach((b) => b.onclick = () => { const [sys, g] = b.dataset.lg.split(':'); st.sys = sys; st.group = g; st.tab = g === 'api' ? 'api' : 'ui'; st.q = ''; st.only = false; render(); });
   el.querySelectorAll('[data-ln]').forEach((b) => b.onclick = () => { st.sys = NODE_SYS[b.dataset.ln.split(':')[0]] || 'panda'; st.tab = 'overview'; render(); });
