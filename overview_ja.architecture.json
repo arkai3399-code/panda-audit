@@ -12,7 +12,7 @@
       "url": "https://github.com/arkai3399-code/Panda-Fortune2",
       "provider": "github",
       "link_mode": "web",
-      "revision": "24b595fc15299f71343c8cdc1d9a467015420675"
+      "revision": "b96ac2c8b266a17a645b1a5c3328f29def976c62"
     },
     "views": [
       {
@@ -58,7 +58,8 @@
         ],
         "note": "API 3 本に画面入口なし。PREMIUM はフロントで封鎖。解約の定時実行は未確認。専門家タブは COMING。"
       }
-    ]
+    ],
+    "output": "overview_ja.html"
   },
   "components": [
     {
@@ -126,7 +127,7 @@
       "sources": [
         {
           "path": "src/pages/FortuneResult.jsx",
-          "line": 1030,
+          "line": 1031,
           "label": "タブ定義"
         },
         {
@@ -270,7 +271,7 @@
         },
         {
           "path": "src/logic/fortuneCalc.js",
-          "line": 126,
+          "line": 127,
           "label": "calcDailyScore"
         }
       ]

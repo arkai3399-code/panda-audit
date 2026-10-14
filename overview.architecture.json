@@ -13,7 +13,7 @@
       "url": "https://github.com/arkai3399-code/Panda-Fortune2",
       "provider": "github",
       "link_mode": "web",
-      "revision": "24b595fc15299f71343c8cdc1d9a467015420675"
+      "revision": "b96ac2c8b266a17a645b1a5c3328f29def976c62"
     },
     "views": [
       {
@@ -59,7 +59,8 @@
         ],
         "note": "3 个接口没有画面入口；PREMIUM 前端封着；解约定时器未见；専門家タブ COMING。"
       }
-    ]
+    ],
+    "output": "overview.html"
   },
   "components": [
     {
@@ -127,7 +128,7 @@
       "sources": [
         {
           "path": "src/pages/FortuneResult.jsx",
-          "line": 1030,
+          "line": 1031,
           "label": "タブ定義"
         },
         {
@@ -271,7 +272,7 @@
         },
         {
           "path": "src/logic/fortuneCalc.js",
-          "line": 126,
+          "line": 127,
           "label": "calcDailyScore"
         }
       ]
