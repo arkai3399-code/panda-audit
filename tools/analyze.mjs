@@ -187,14 +187,9 @@ for (const a of apis) {
   issues.push({ kind: ext ? 'ext' : 'no-ui', level: ext ? 'note' : 'ready', where: `${a.host} ${a.path}`, group: 'api', what, what_ja, source: { file: a.file, line: a.line } });
 }
 for (const L of G.unwired.layers.filter((x) => x.ops.length > 0 || /tabs\//.test(x.file))) issues.push({ kind: 'unwired', level: /AiChatTab/.test(L.file) ? 'ready' : 'note', where: path.basename(L.file), group: 'unwired', what: `画面部品已制作（${L.ops.length} 个操作点），但从 main.jsx 出发的 import 链到不了它——页面上不显示。`, what_ja: `画面部品は作成済み（操作点 ${L.ops.length}）だが、main.jsx から辿る import 連鎖が届かない——ページに表示されない。`, source: { file: L.file, line: 1 } });
+// 2026-10-14 閉じた bug 6 件（喜忌神フラグ / 仕事・金運短評の十神未渡し / 六曜朔日表 / 大運外挿 BL-01 / 有料判定 FR-01）: PANDA main 530a147 で修正、テスト + 国立天文台暦要項で確認済み。経緯は PANDA の docs/handoff/2026-10-14_audit-6-bugfix.md
 const curated = [
   ['src/pages/FortuneResult.jsx', /id: "expert".*COMING/, '基本タブ列 › 専門家に相談', '入口做了，但功能没启动：标签标着 COMING，点进去只有预告内容，没有任何可操作按钮（ExpertTab 操作点 0）。', 'expert', null, '入口はあるが機能は未稼働：タブに COMING と表示され、開いても予告文のみで操作できるボタンがない（ExpertTab の操作点 0）。', 'todo'],
-  ['src/components/blocks/TodayFortuneBlock.jsx', /const kiH = ki && \(calc\.kishin/, '運勢タイムライン › 4 枚のスコアカード短評', '喜神标志恒为 false：拿五行数组（木火土金水）去比当日天干（甲乙…），永远不命中。追い風系短评与「忌神重叠」长文案分支不会出现。', 'timeline', null, '喜神フラグが常に false：五行の配列（木火土金水）を当日の天干（甲乙…）と比較しており、絶対に一致しない。追い風系の短評と「忌神重なり」の長文分岐は出現しない。', 'bug'],
-  ['src/pages/FortuneResult.jsx', /genComment\(workScore, 'work'\)/, '仕事運（詳細）› 短評', '详情页调用 genComment 不传十神与标志，首页卡片传。同一天同一类别，两处短评可能不同。', 'detail', null, '詳細ページの genComment は十神とフラグを渡さず、トップのカードは渡す。同じ日・同じカテゴリでも 2 か所の短評が異なりうる。', 'bug'],
-  ['src/pages/FortuneResult.jsx', /genComment\(moneyScore, 'money'\)/, '金運（詳細）› 短評', '同上：不传十神，与首页卡片的短评可能不一致。', 'detail', null, '同上：十神を渡さないため、トップのカードの短評と一致しないことがある。', 'bug'],
-  ['src/logic/fortuneCalc.js', /const SHUO = \[new Date\(2026/, '運勢タイムライン › 六曜 / 開運日カレンダー', '六曜的朔日表只写了 2026 年。2027-01-01 起六曜与「大開運日」标记会算错（分数不受影响）。', 'timeline', null, '六曜の朔日表は 2026 年分しかない。2027-01-01 以降、六曜と「大開運日」の表示が誤る（スコアには影響しない）。', 'bug'],
-  ['src/engines/meishikiEngine.js', /\|\| daiunList\[0\]/, '基本命式 › 現在の大運', '年龄超出 8 步大运范围时回退到第 1 步（台账 BL-01）：高龄用户会显示幼年期的大运，并影响每日分数。', 'meishiki', null, '年齢が大運 8 本の範囲を超えると 1 本目に戻る（台帳 BL-01）：高齢ユーザーには幼少期の大運が表示され、日々のスコアにも影響する。', 'bug'],
-  ['api/_lib/auth.js', /export function hasPaidEntitlement|function hasPaidEntitlement/, 'AI 鑑定 / 付费判定', '付费判定不看 currentPeriodEnd（台账 FR-01）：若解约回调缺失，付费权限会一直有效。', 'api', 'AI 鑑定 / 有料判定', '有料判定が currentPeriodEnd を見ない（台帳 FR-01）：解約コールバックが欠けると有料権限が無期限に残る。', 'bug'],
 ];
 for (const [file, re, where, what, group, where_ja, what_ja, level] of curated) { const ln = existsSync(path.join(SNAP, file)) ? grepLine(file, re) : null; issues.push({ kind: 'logic', level: level || 'bug', stale: !ln, where, what, group, where_ja: where_ja || where, what_ja, source: { file, line: ln || 1 } }); }
 const placeholders = [
